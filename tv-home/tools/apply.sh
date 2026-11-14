@@ -85,6 +85,10 @@ case "$NOW" in
 esac
 # Keep watching with no computer reads Android's Watch Next list, which needs this permission.
 "$PY" "$T" shell "pm grant app.couchtv.launcher android.permission.READ_TV_LISTINGS" > /dev/null 2>&1 || true
+# Fire TV keeps that list switched off and every Amazon plug-in that could fill it is signature-only,
+# so on those TVs Keep watching falls back to what the media apps are playing right now, which needs
+# notification access. Only a computer can give that; without it Android never binds MediaWatch.kt.
+"$PY" "$T" shell "cmd notification allow_listener app.couchtv.launcher/app.couchtv.launcher.MediaWatch" > /dev/null 2>&1 || true
 # The screensaver quick button cuts the screen timeout for a moment (its own screensaver refuses
 # apps), which needs "modify system settings".
 "$PY" "$T" shell "appops set app.couchtv.launcher WRITE_SETTINGS allow" > /dev/null 2>&1 || true
@@ -111,7 +115,15 @@ needed() {
   "$PY" "$T" shell "dumpsys package $1" | grep -q -E "(pkgFlags|flags)=\[.*PERSISTENT" && return 0
   return 1
 }
-: > "$LIST"
+# The undo list is both the record of what couch-tv switched off and the list it keeps off: a re-run
+# re-applies it, so a Fire OS update (or an app switched back on by hand) cannot quietly undo the
+# debloat. It is written once, at the end: a run cut short leaves the old list untouched.
+PREV_OFF=""
+[ -f "$LIST" ] && PREV_OFF=$(cat "$LIST")
+WANT="$WANT $PREV_OFF"
+NEW="$LIST.new"
+trap 'rm -f "$NEW"' EXIT
+: > "$NEW"
 for p in $WANT; do
   if ! echo "$present" | grep -qx "$p"; then
     continue
@@ -119,16 +131,18 @@ for p in $WANT; do
     if echo "$disabled" | grep -qx "$p"; then
       # Refused now, but already switched off by an earlier run (issue #44): it cannot be switched
       # off again here, yet it is still off, so it goes on the undo list and undo.sh turns it back on.
-      echo "$p" >> "$LIST"
+      echo "$p" >> "$NEW"
       echo "     $p is refused as something the TV may need, but it is already switched off from an earlier run: it stays on the undo list so undo.sh switches it back on"
     else
       echo "     leaving $p on: the TV may need it to start"
     fi
   else
     "$PY" "$T" shell "pm disable-user --user 0 $p"
-    echo "$p" >> "$LIST"
+    echo "$p" >> "$NEW"
   fi
 done
+sort -u "$NEW" > "$LIST.tmp" && mv "$LIST.tmp" "$LIST"
+rm -f "$NEW"
 
 echo "3/4  Making couch-tv the home and sending your settings"
 "$PY" "$T" shell "cmd package set-home-activity $HOME_ACT"

@@ -1004,8 +1004,9 @@ class MainActivity : Activity() {
 
     private fun readWatchNext(): JSONArray {
         val out = JSONArray()
-        if (checkSelfPermission(READ_TV) != PackageManager.PERMISSION_GRANTED) return out
-        try {
+        val named = HashSet<String>()
+        // Android's own Watch Next list: the richest source, and the only one on TVs that have it on.
+        if (checkSelfPermission(READ_TV) == PackageManager.PERMISSION_GRANTED) try {
             val cols = arrayOf("_id", "package_name", "title", "episode_title", "season_display_number",
                 "episode_display_number", "poster_art_uri", "thumbnail_uri", "last_playback_position_millis",
                 "duration_millis", "last_engagement_time_utc_millis")
@@ -1024,6 +1025,7 @@ class MainActivity : Activity() {
                     } catch (e: Exception) { pkg }
                     val pos = c.getLong(8)
                     val dur = c.getLong(9)
+                    named.add(pkg)
                     out.put(JSONObject().apply {
                         put("id", c.getLong(0).toString())
                         put("wn", true)
@@ -1045,10 +1047,25 @@ class MainActivity : Activity() {
         } catch (e: Exception) {
             // no provider or no permission: an empty row, never a crash
         }
+        // Fire OS keeps that list switched off and every Amazon plug-in that could fill it is
+        // signature-only, so on those TVs the list above stays empty. What the media apps are playing
+        // right now still says what you are in the middle of (MediaWatch.kt, notification access),
+        // and it fills the row on TVs a computer has granted that to.
+        try {
+            val keep = MediaWatch.read(this)
+            for (i in 0 until keep.length()) {
+                if (out.length() >= 12) break
+                val o = keep.optJSONObject(i) ?: continue
+                if (!named.add(o.optString("package"))) continue
+                out.put(o)
+            }
+        } catch (e: Exception) {}
         return out
     }
 
     private fun openWatchNextItem(id: String): Boolean {
+        // A card from the playing-now list (MediaWatch.kt): the app owns it, so it opens the app.
+        if (id.startsWith("m:")) return launchPackage(id.substring(2))
         if (!Regex("[0-9]{1,18}").matches(id)) return false
         try {
             val cols = arrayOf("package_name", "intent_uri")
@@ -1073,8 +1090,10 @@ class MainActivity : Activity() {
         return false
     }
 
-    /** The picture behind a Watch Next card: a web address or a content address the page cannot read itself. */
+    /** The picture behind a Keep watching card: a web address or a content address the page cannot read itself. */
     private fun watchNextArt(token: String): ByteArray? {
+        // A card from the playing-now list (MediaWatch.kt): the artwork the media app published.
+        MediaWatch.artFor(this, token)?.let { return it }
         return try {
             val raw = String(android.util.Base64.decode(token, android.util.Base64.URL_SAFE))
             if (raw !in watchNextArtSeen) return null

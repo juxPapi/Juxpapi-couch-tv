@@ -27,7 +27,7 @@
   // read in readConfig() once the page starts (mock.js fills them in for previews). See docs/CONFIG.md.
   var CFG = {}, HOME = {}, TVCFG = {}, QUICK = [];
   var WXCFG = { lat: -33.8688, lon: 151.2093, place: "Sydney", timezone: "Australia/Sydney" };
-  var QUICK_ALL = ["sleep", "picture", "connections", "bluetooth", "network", "screensaver"];
+  var QUICK_ALL = ["sleep", "picture", "connections", "bluetooth", "network", "screensaver", "clock"];
   var ON_TV = false;   // served by the on-TV app (config "mode"), which can open the TV's own settings screens
   // The look: always the Night scenes on this TV (the Classic look is switched off).
   var THEME = "night", NIGHT = true, CLOCK24 = false;
@@ -44,6 +44,33 @@
   // Home settings made on this TV with the gear tile (see "home settings" below). They win over
   // config.js. ST is the saved object; the rest are read from it in readConfig().
   var ST = {}, WX_SHOW = true, WX_F = false, WX_EVERY = 30, HIDDEN_TV = [];
+  // The clock customiser (Home settings, Clock; the live drawer): what the digits look like, from
+  // Home settings on this TV. Kept in ST with everything else, so it saves to localStorage at once
+  // and survives a restart; ?mock=1 previews it on a computer. See applyClock() below.
+  var CK_DEF = {
+    clock_layout: "single", clock_font: "antonio", clock_weight: 300, clock_scale: 1,
+    clock_align: "scene", clock_fill: "glass", clock_color: "wallpaper",
+    clock_depth: false, clock_two: false, clock_outline: false, clock_date: "above"
+  };
+  var CK_FONTS = [["antonio", "ck_f_antonio"], ["inter", "ck_f_inter"], ["archivo", "ck_f_archivo"],
+    ["nunito", "ck_f_nunito"], ["fraunces", "ck_f_fraunces"]];
+  var CK_LAYOUTS = [["single", "ck_l_single"], ["stack", "ck_l_stack"], ["offset", "ck_l_offset"], ["tight", "ck_l_tight"]];
+  var CK_ALIGNS = [["scene", "ck_a_scene"], ["left", "ck_a_left"], ["center", "ck_a_center"], ["right", "ck_a_right"], ["mid", "ck_a_mid"]];
+  var CK_POS = [["left", "ck_a_left"], ["center", "ck_a_center"], ["right", "ck_a_right"]];
+  var CK_FILLS = [["glass", "ck_fill_glass"], ["adaptive", "ck_fill_adaptive"], ["solid", "ck_fill_solid"], ["outline", "ck_fill_outline"]];
+  var CK_SIZES = [[0.8, "ck_sz_80"], [0.9, "ck_sz_90"], [1, "ck_sz_100"], [1.1, "ck_sz_110"], [1.2, "ck_sz_120"], [1.3, "ck_sz_130"], [1.4, "ck_sz_140"]];
+  var CK_WEIGHTS = [[300, "300"], [400, "400"], [500, "500"], [600, "600"], [700, "700"], [800, "800"], [900, "900"]];
+  var CK_DATES = [["above", "ck_d_above"], ["below", "ck_d_below"], ["off", "ck_d_off"]];
+  // the face and its real weight, so document.fonts.load() finds it before the glass is measured
+  var CK_LOAD = { antonio: [300, "Antonio"], inter: [450, "Inter"], archivo: [400, "Archivo Black"],
+    nunito: [800, "Nunito"], fraunces: [600, "Fraunces"] };
+  var CK_COLOURS = [["wallpaper", "ck_c_wallpaper", null], ["white", "ck_c_white", "#ffffff"], ["oled", "ck_c_oled", "#0b0b10"],
+    ["cyan", "ck_c_cyan", "#6fd6ff"], ["amber", "ck_c_amber", "#ffbf5e"], ["coral", "ck_c_coral", "#ff7a6e"],
+    ["violet", "ck_c_violet", "#b79bff"], ["mint", "ck_c_mint", "#62e6b0"], ["rose", "ck_c_rose", "#ff8fc7"],
+    ["lime", "ck_c_lime", "#d3f56b"]];
+  var CK_TABS = ["ck_tab_shape", "ck_tab_type", "ck_tab_colour"];
+  // a tint for each of your own scenes, so "wallpaper colour" follows the photo on screen
+  var CK_SCENE_TINTS = ["#ffd479", "#8fe6ff", "#ffb38a", "#c8b6ff", "#9df0c8", "#ffc2df", "#b9d4ff", "#e9f79a"];
   // Now playing (#31), on unless switched off; the navigation sound: system, soft or off (#32)
   var NP_ON = true, SOUND_STYLE = "system";
   // glass app icons: the focused app in its own colours, or staying glass (#32)
@@ -61,7 +88,7 @@
     document.documentElement.classList.toggle("no-flex-gap", !ok);
   })();
 
-  // What this TV keeps for itself (app order, people order, new apps, the look). Written to the
+  // What this TV keeps for itself (app order, new apps, the look). Written to the
   // page's storage and to the launcher (TVOS.keep), so the live page and the saved copy share it.
   var PFX = MOCK || PREVIEW ? "mock:" : "";
   function kept(key) {
@@ -118,6 +145,7 @@
     bluetooth: '<svg viewBox="0 0 24 24"><path d="M6.5 7.5l11 9-5.5 4.5v-18l5.5 4.5-11 9"/></svg>',
     network: '<svg viewBox="0 0 24 24"><path d="M2.5 9a14 14 0 0 1 19 0M5.7 12.5a9.5 9.5 0 0 1 12.6 0M8.9 16a4.8 4.8 0 0 1 6.2 0"/><circle cx="12" cy="19.3" r="1"/></svg>',
     connections: '<svg viewBox="0 0 24 24"><path d="M10 14a4 4 0 0 1 0-5.7l3-3a4 4 0 0 1 5.7 5.7l-2 2"/><path d="M14 10a4 4 0 0 1 0 5.7l-3 3a4 4 0 0 1-5.7-5.7l2-2"/></svg>',
+    clock: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.4V12l3.1 2"/></svg>',
     store: '<svg viewBox="0 0 24 24"><path d="M5 8h14l-1.2 11.2a2 2 0 0 1-2 1.8H8.2a2 2 0 0 1-2-1.8z"/><path d="M9 10.5V7a3 3 0 0 1 6 0v3.5"/></svg>',
     check: '<svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>',
     // Now playing's buttons (filled shapes)
@@ -156,36 +184,13 @@
   }
 
   var $ = function (id) { return document.getElementById(id); };
-  var data = { shows: [], showsBy: {}, apps: [], screens: [], bridge: null };
-  // Whose Keep watching is showing. Remembered on this TV. Any number of people: none or one shows
-  // no switcher, two the pill switch, three or more a round head icon that opens a list.
-  // With nobody set up, everything is shown ("both" to the bridge).
-  var PEOPLE = [], NOBODY = false, who = null, pi = 0;
-  try { who = localStorage.getItem("tvhome.who"); } catch (e) {}
+  var data = { shows: [], apps: [], screens: [], bridge: null };
   var zone = "grid", s = 0, g = 0;   // focus: zone, shelf index, grid index
   var shelfEls = [], gridEls = [], gridItems = [];
   var touched = false, expanded = false;
   var retryTimer = null, retryMs = 2500, statusTimer = null;
-  var pmi = 0, plift = false;        // the people list: focused row, and whether that row is picked up
   var lift = null;                   // the dock app picked up to move: {pkg}
   var newApps = [];                  // apps installed since this TV first saw its apps, until opened once
-
-  function setPeople(list) {
-    PEOPLE = (list || []).filter(function (p) { return p && p.id && p.name; });
-    NOBODY = !PEOPLE.length;
-    if (NOBODY) PEOPLE = [{ id: "both", name: t("everyone") }];
-    PEOPLE.forEach(function (p) { if (!data.showsBy[p.id]) data.showsBy[p.id] = []; });
-    if (!PEOPLE.some(function (p) { return p.id === who; })) who = PEOPLE[0].id;
-  }
-  // An order made on this TV with no bridge to keep it (or before the bridge heard about it).
-  function localPeopleOrder(list, always) {
-    var lo = kept("tvhome.people.order");
-    if (!lo || !lo.ids || !(always || lo.pending)) return list;
-    var by = {};
-    list.forEach(function (p) { by[p.id] = p; });
-    var out = lo.ids.filter(function (id) { return by[id]; }).map(function (id) { return by[id]; });
-    return out.concat(list.filter(function (p) { return lo.ids.indexOf(p.id) < 0; }));
-  }
 
   // Which wins, lowest first: the defaults here, config.js (config.json), then Home settings made on
   // this TV (kept by the bridge too when there is one), then ?theme= for a preview. docs/CONFIG.md.
@@ -204,6 +209,13 @@
     WX_EVERY = [15, 30, 60].indexOf(ST.wx_every) >= 0 ? ST.wx_every : 30;
     var mine = TV_ID || CFG.default_tv;
     TVCFG = (CFG.tvs || []).filter(function (t) { return t.id === mine; })[0] || (CFG.tvs || [])[0] || {};
+    // The clock button is new: put it at the front of a quick list saved before it existed, once,
+    // so the live clock drawer can always be reached with the remote. Removing it later sticks.
+    if (Array.isArray(ST.quick) && !ST.ck_quick && ST.quick.indexOf("clock") < 0) {
+      ST.quick = ["clock"].concat(ST.quick);
+      ST.ck_quick = true;
+      saveSettings();
+    }
     // no "quick" from an older bridge: the sleep timer, and the picture switch where the TV has one
     QUICK = (Array.isArray(ST.quick) ? ST.quick : TVCFG.quick || ["sleep", "picture"])
       .filter(function (q, i, a) { return QUICK_ALL.indexOf(q) >= 0 && a.indexOf(q) === i; });
@@ -212,8 +224,7 @@
     NIGHT = true;
     document.documentElement.classList.toggle("theme-night", NIGHT);
     GLASS = glassSetting();
-    document.documentElement.classList.toggle("glass", GLASS !== "off");
-    document.documentElement.classList.toggle("glass-lite", GLASS === "lite");
+    applyGlass();
     // glass app icons (#25): set in Home settings, else home.glass_icons; off unless switched on
     GLASS_ICONS = typeof ST.glass_icons === "boolean" ? ST.glass_icons : HOME.glass_icons === true;
     NP_ON = typeof ST.now_playing === "boolean" ? ST.now_playing : HOME.now_playing !== false;
@@ -240,12 +251,8 @@
     SCENES = st.order.filter(function (id) { return st.off.indexOf(id) < 0; }).map(sceneById).filter(Boolean);
     if (!SCENES.length) SCENES = [SCENE_LIB[0]];
     SCENE_MS = Math.max(5, parseInt(ST.scene_seconds || HOME.scene_seconds, 10) || 20) * 1000;
-    var people = CFG.people || [{ id: "person1", name: "Person 1" }, { id: "person2", name: "Person 2" }];
-    // people added, renamed or removed in Home settings with no bridge to keep them
-    var lst = kept("tvhome.people.list");
-    if (lst && Array.isArray(lst.people) && (lst.pending || ALONE)) people = lst.people;
-    setPeople(localPeopleOrder(people, OFFLINE));
     newApps = kept("tvhome.apps.new") || [];
+    applyClock();
   }
   function lookSetting() { return "night"; }   // Classic is switched off; kept so older code still answers
   function glassAmount() {
@@ -256,6 +263,13 @@
     var r = document.documentElement;
     for (var i = 1; i <= 5; i++) r.classList.toggle("ga-" + i, GLASS_AMT === i);
     if (r.classList.contains("clock-liquid") !== CLOCK_LIQUID) { r.classList.toggle("clock-liquid", CLOCK_LIQUID); glassShown = ""; }
+  }
+  // The panels' look has to change on the spot when Home settings is used, not after a restart.
+  function applyGlass() {
+    var r = document.documentElement;
+    r.classList.toggle("glass", GLASS !== "off");
+    r.classList.toggle("glass-lite", GLASS === "lite");
+    glassShown = "";
   }
   function glassSetting() { var g = ST.glass || HOME.glass; return g === "on" || g === "lite" ? g : "off"; }
   // no clock in Home settings or config.json: the one usual for the language (24 hour in Italian and German)
@@ -273,7 +287,7 @@
   }
   function save() {
     if (MOCK || PREVIEW || OFFLINE) return;
-    var j = JSON.stringify({ showsBy: data.showsBy, screens: data.screens, order: data.order });
+    var j = JSON.stringify({ screens: data.screens, order: data.order });
     try { localStorage.setItem(CACHE_KEY, j); } catch (e) {}
     try { if (TV && TV.keep) TV.keep(CACHE_KEY, j); } catch (e) {}
   }
@@ -425,7 +439,7 @@
   ];
   var BUILT_IN = SCENE_LIB.slice();   // readConfig() adds your own scenes to SCENE_LIB
   var SCENES = SCENE_LIB.slice(), SCENE_MS = 20000;
-  var scene = 0, sceneEls = [], glassShown = "";
+  var scene = 0, sceneEls = [], glassShown = "", sceneTimer = null;
 
   // Your own scenes (home.my_scenes in config.json), made with tools/make-scene.py: the photo, glass
   // copy and cut-out in backgrounds/mine/, and how its clock looks. Anything odd falls back to the
@@ -490,7 +504,7 @@
 
   function buildScenes() {
     var box = $("scenes");
-    sceneEls = SCENES.map(function (s) {
+    sceneEls = SCENES.map(function (s, si) {
       var el = document.createElement("div");
       el.className = "scene s-" + sceneClass(s);
       el.innerHTML = '<img class="sbg" alt=""><div class="shade"></div><div class="gclock"></div>' +
@@ -500,6 +514,8 @@
         el.style.setProperty("--my-top", s.y * 100 + "vh");
         el.style.setProperty("--my-size", s.size * 100 + "vh");
         el.style.setProperty("--my-weight", s.weight);
+        // adaptive digits follow this scene's own colour
+        el.style.setProperty("--ck-scene", CK_SCENE_TINTS[si % CK_SCENE_TINTS.length]);
         el.querySelector(".sbg").onerror = function () { lostScene(s); };
         var fg = el.querySelector(".fg");
         if (fg) fg.onerror = function () { fg.style.display = "none"; };   // "cutout": true but no file: the clock stays in front
@@ -526,6 +542,27 @@
     return i;
   }
 
+  // Item 1: a scene switched off (or back on) in Look and scenes must take effect at once, and the
+  // turn timer must be re-armed, so nothing rotates once only one scene is left.
+  function applyScenes() {
+    var cur = SCENES[scene] ? (SCENES[scene].own ? "own" : SCENES[scene].id) : null;
+    var st = sceneState();
+    SCENES = st.order.filter(function (id) { return st.off.indexOf(id) < 0; }).map(sceneById).filter(Boolean);
+    if (!SCENES.length) SCENES = [SCENE_LIB[0]];
+    if (NIGHT) {
+      $("scenes").innerHTML = "";
+      buildScenes();
+      var i = cur ? SCENES.map(function (s) { return s.own ? "own" : s.id; }).indexOf(cur) : 0;
+      showScene(Math.max(0, i));
+    }
+    armScenes();
+  }
+  // How long each scene stays also comes from Look and scenes, so the timer is re-armed on any change.
+  function armScenes() {
+    if (sceneTimer) { clearInterval(sceneTimer); sceneTimer = null; }
+    if (NIGHT && SCENES.length > 1) sceneTimer = setInterval(nextScene, SCENE_MS);
+  }
+
   // draw a scene (load its pictures, place its clock) so it can fade in
   function readyScene(i) {
     var s = SCENES[i], el = sceneEls[i];
@@ -542,7 +579,11 @@
     var cs = el.querySelectorAll(".gclock");
     for (var k = 0; k < cs.length; k++) {
       var c = cs[k];
-      c.innerHTML = '<span class="edge">' + hm + '</span><span class="fill">' + hm + '</span><span class="sheen">' + hm + '</span><span class="rim">' + hm + "</span>";
+      // The same split markup in every glass layer (hour, colon, minute), so the photo clip still
+      // lines up while a split layout or an outline minute is drawn (the clock customiser).
+      var inner = clockHTML(hm);
+      c.innerHTML = '<span class="edge">' + inner + '</span><span class="fill">' + inner +
+        '</span><span class="sheen">' + inner + '</span><span class="rim">' + inner + "</span>";
       var f = c.querySelector(".fill"), ex = c.offsetLeft + f.offsetLeft, ey = c.offsetTop + f.offsetTop;
       if (CLOCK_LIQUID) {
         // Liquid glass (#25): the sharp photo seen through the digits, magnified LENS times about
@@ -631,28 +672,28 @@
     }, 2000);
   }
 
-  // Night: the date line sits centred above the clock, between the people switch and the quick
-  // buttons. Longer words (Spanish, a running sleep timer, four buttons) can reach them, so it makes
+  // Night: the date line sits centred above the clock, beside the quick buttons. Longer words
+  // (Spanish, a running sleep timer, four buttons) can reach them, so it makes
   // room: first it centres in the space left, then drops the weather's words, then the weather.
   function fitDate() {
     var d = $("date"), line = d.firstChild;
     if (!NIGHT || !line || !line.getBoundingClientRect) return;
+    placeDate();   // the date follows the digits, whatever the scene or clock setting
     d.style.left = ""; d.style.right = "";
     d.classList.remove("tight", "tighter");
     var b = line.getBoundingClientRect(), rem = innerWidth / 120;
     var near = function (r) { return r && r.width > 0 && r.bottom > b.top && r.top < b.bottom; };
     var q = $("quick").classList.contains("none") ? null : $("qbtns").getBoundingClientRect();
-    var p = $("people").getBoundingClientRect();
-    var hitQ = near(q) && b.right > q.left - rem, hitP = near(p) && b.left < p.right + rem;
-    if (!hitQ && !hitP) return;
-    if (hitQ) d.style.right = (innerWidth - q.left + 1.5 * rem) + "px";
-    if (hitP) d.style.left = (p.right + 1.5 * rem) + "px";
+    var hitQ = near(q) && b.right > q.left - rem;
+    if (!hitQ) return;
+    d.style.right = (innerWidth - q.left + 1.5 * rem) + "px";
     if (d.scrollWidth > d.clientWidth + 1) d.classList.add("tight");
     if (d.scrollWidth > d.clientWidth + 1) d.classList.add("tighter");
   }
 
   // the settings screen covers the scenes, so they wait (one less thing for a small TV stick to draw)
-  function nextScene() { if (zone !== "settings") showScene(nextFrom(scene)); }
+  // while the clock is being adjusted the scene stays put, so the digits do not move under the drawer
+  function nextScene() { if (zone !== "settings" && zone !== "clock" && zone !== "clockbar") showScene(nextFrom(scene)); }
 
   // The bridge's reading for the place in config.json, or straight from Open-Meteo with no bridge
   // or when Home settings chose another place. Hidden when Home settings switched the weather off.
@@ -698,9 +739,8 @@
     var el = $("np"), on = npVisible();
     el.classList.toggle("on", on);
     if (NIGHT) {
-      // the row shows while someone has a show on the go, or while a song plays
-      var anyone = PEOPLE.some(function (p) { return (data.showsBy[p.id] || []).length; });
-      $("shelf-section").classList.toggle("empty", !anyone && !on);
+      // the row shows while there is a show on the go, or while a song plays
+      $("shelf-section").classList.toggle("empty", !data.shows.length && !on);
       $("np-slot").classList.toggle("on", on);
     }
     if (!on) { el.innerHTML = ""; return; }
@@ -769,6 +809,7 @@
       if (q === "screensaver") return nativeScreensaver();
       if (q === "bluetooth" || q === "network") return ON_TV && !OFFLINE;
       if (q === "connections") return nativeSettings() || (ON_TV && !OFFLINE);
+      if (q === "clock") return true;   // the clock customiser always works, with or without a bridge
       return false;
     });
   }
@@ -807,6 +848,8 @@
         el.innerHTML = ICONS[q] + "<span>" + esc(t(q)) + "</span>";
       } else if (q === "connections") {
         el.innerHTML = ICONS.connections + "<span>" + esc(t("quick_connections")) + "</span>";
+      } else if (q === "clock") {
+        el.innerHTML = ICONS.clock + "<span>" + esc(t("quick_clock")) + "</span>";
       }
     });
     if (qi >= vis.length) qi = Math.max(0, vis.length - 1);
@@ -955,6 +998,7 @@
     else if (q === "screensaver") startScreensaver();
     else if (q === "bluetooth" || q === "network") openSettingsScreen(q);
     else if (q === "connections") openConnections();
+    else if (q === "clock") openClockBar();
   }
   function refreshQuick() {
     var jobs = [];
@@ -980,91 +1024,16 @@
     return parts.join("  ·  ");
   }
 
-  // ---------------- who is watching: none, a pill switch for two, a head icon and a list for more ----------------
-  var PALETTE = ["#ff9f0a", "#30b350", "#0a84ff", "#bf5af2", "#ff375f", "#00a5a8", "#5e5ce6", "#ac8e68"];
-  function peopleCount() { return NOBODY ? 0 : PEOPLE.length; }
-  function isHead() { return peopleCount() >= 3; }
-  function colourOf(p) {
-    if (p.colour) return p.colour;
-    for (var h = 0, i = 0; i < p.id.length; i++) h = (h * 31 + p.id.charCodeAt(i)) >>> 0;
-    return PALETTE[h % PALETTE.length];
-  }
-  function avatarHTML(p) {
-    return '<span class="avatar" style="background:' + esc(colourOf(p)) + '">' + esc((p.name || "?").trim().charAt(0).toUpperCase()) + "</span>";
-  }
-  function whoIndex() { return Math.max(0, PEOPLE.map(function (p) { return p.id; }).indexOf(who)); }
-
-  function renderPeople() {
-    var el = $("people"), n = peopleCount();
-    el.classList.toggle("none", n < 2);
-    el.classList.toggle("head", n >= 3);
-    if (n >= 3) {
-      var cur = PEOPLE[whoIndex()];
-      el.innerHTML = avatarHTML(cur) + '<span class="sr">' + esc(cur.name) + "</span>";
-    } else {
-      el.innerHTML = PEOPLE.map(function (p) {
-        return '<span class="person' + (p.id === who ? " on" : "") + '">' + esc(p.name) + "</span>";
-      }).join("");
-    }
-    renderPop();
-  }
-
-  function renderPop() {
-    var el = $("people-pop");
-    if (!el.classList.contains("on")) return;
-    el.innerHTML = '<div class="plist">' + PEOPLE.map(function (p, i) {
-      var cls = "prow" + (i === pmi ? " focus" : "") + (plift && i === pmi ? " lifted" : "") + (p.id === who ? " on" : "");
-      var tail = plift && i === pmi ? '<i class="pmark">' + ICONS.updown + "</i>" : p.id === who ? '<i class="pmark">' + ICONS.check + "</i>" : "";
-      return '<div class="' + cls + '">' + avatarHTML(p) + "<b>" + esc(p.name) + "</b>" + tail + "</div>";
-    }).join("") + '</div><p class="phint">' + (plift ? t("people_lift_hint") : t("people_hold_hint")) + "</p>";
-  }
-  function openPop() {
-    zone = "pmenu"; pmi = whoIndex(); plift = false;
-    $("people-pop").classList.add("on");
-    renderPop();
-  }
-  function closePop() {
-    $("people-pop").classList.remove("on");
-    $("people-pop").innerHTML = "";
-    plift = false;
-    zone = "people";
-  }
-  function pickWho(id) {
-    if (id === who) return;
-    who = id; s = 0;
-    try { localStorage.setItem("tvhome.who", who); } catch (e) {}
-    if (!NOBODY) api("POST", "/api/who", { who: who }).catch(function () {});
-    renderShelf();
-  }
-  // The order of the names: kept by the bridge (the phone's People sheet uses the same list), or on
-  // this TV when there is no bridge. "pending" means the bridge has not heard about it yet.
-  function savePeopleOrder() {
-    var ids = PEOPLE.map(function (p) { return p.id; });
-    keep("tvhome.people.order", { ids: ids, pending: true });
-    if (OFFLINE || data.bridge === false) return;
-    api("POST", "/api/people", { order: ids })
-      .then(function () { keep("tvhome.people.order", { ids: ids, pending: false }); }, function () {});
-  }
-  function dropPeople() {
-    plift = false;
-    savePeopleOrder();
-    renderPeople();
-  }
-
-  // Keep watching shows up to ten per person; the row slides along under the remote.
+  // ---------------- Keep watching (#8) ----------------
+  // Keep watching shows up to ten; the row slides along under the remote.
   var KEEP_MAX = 10;
   function renderShelf() {
     var track = $("shelf");
-    data.shows = (data.showsBy[who] || []).slice(0, KEEP_MAX);
-    var anyone = PEOPLE.some(function (p) { return (data.showsBy[p.id] || []).length; });
-    // nobody has anything on the go: no empty box, the photo has the space (unless Now playing
-    // is up at night). The people switcher stays: with nothing yet (Netflix tells Android nothing on
-    // some TVs, issue #23) it is the only way to say who is watching before anything is played.
-    $("shelf-section").classList.toggle("empty", !anyone && !(NIGHT && npVisible()));
-    renderPeople();
+    data.shows = (data.shows || []).slice(0, KEEP_MAX);
+    // nothing on the go: no empty box, the photo has the space (unless Now playing is up at night)
+    $("shelf-section").classList.toggle("empty", !data.shows.length && !(NIGHT && npVisible()));
     if (!data.shows.length) {
-      var name = PEOPLE[whoIndex()].name;
-      track.innerHTML = '<p class="shelf-none">' + esc(peopleCount() < 2 ? t("nothing_yet") : t("nothing_for", { name: name })) + "</p>";
+      track.innerHTML = '<p class="shelf-none">' + esc(t("nothing_yet")) + "</p>";
       shelfEls = [];
       return;
     }
@@ -1198,7 +1167,10 @@
   var hintTimer = null, hintFlash = "";
   function renderHint() {
     var text = hintFlash ||
-      (lift ? t("app_lift_hint") : NIGHT && expanded && zone === "grid" ? t("app_add_hint") : "");
+      (zone === "clockbar" ? "" :
+        lift ? t("app_lift_hint") :
+        zone === "clock" ? t("ck_hint_clock") :
+        NIGHT && expanded && zone === "grid" ? t("app_add_hint") : "");
     $("hint").textContent = text;
     $("hint").classList.toggle("on", !!text);
     document.documentElement.classList.toggle("hinting", !!text);
@@ -1432,8 +1404,7 @@
   // ---------------- focus ----------------
   function clearFocus() {
     shelfEls.concat(gridEls, quickEls).forEach(function (el) { if (el) el.classList.remove("focus"); });
-    $("people").classList.remove("focus");
-    Array.prototype.forEach.call($("people").children, function (el) { el.classList.remove("focus"); });
+    positionClockFocus(false);
   }
 
   function scrollShelf() {
@@ -1450,22 +1421,28 @@
   }
 
   function shelfOn() { return !$("shelf-section").classList.contains("empty"); }
-  // the switcher shows for two or more people, also while nobody has anything yet (issue #23)
-  function peopleOn() { return peopleCount() >= 2; }
-  function toPeople() { zone = "people"; pi = whoIndex(); }
 
   function paintFocus() {
     if (zone === "settings") { renderSettings(); return; }
     if (zone === "smart") { window.smartHome.paint(); return; }
+    if (zone === "clockbar") { clearFocus(); renderCkbar(); return; }   // the drawer carries its own focus
     clearFocus();
     renderHint();
     if (npVisible()) renderNp();   // its buttons carry the focus only while zone is "np"
+    if (zone === "clock") {
+      // up from the quick buttons: the ring sits round the real digits; OK opens the drawer
+      positionClockFocus(true);
+      hero(null);
+      $("place").style.visibility = "";
+      showPhoto();
+      renderHint();
+      return;
+    }
     if (zone === "gear") { if (gridEls[g]) gridEls[g].classList.add("focus"); renderGear(); return; }
     if (zone === "appmenu") { if (gridEls[g]) gridEls[g].classList.add("focus"); renderAppMenu(); return; }
     if (zone === "updask") { renderAsk(); return; }
     if (zone === "menu") { renderMenu(); return; }
     if (zone === "inputs") { if (quickEls[qi]) quickEls[qi].classList.add("focus"); renderInputMenu(); return; }
-    if (zone === "pmenu") { renderPop(); $("people").classList.add("focus"); return; }
     if (zone === "np") {
       if (!npReach()) { zone = shelfEls.length ? "shelf" : "grid"; paintFocus(); return; }
       renderNp();
@@ -1476,14 +1453,6 @@
     }
     if (zone === "quick" && quickEls[qi]) {
       quickEls[qi].classList.add("focus");
-      hero(null);
-      $("place").style.visibility = "";
-      showPhoto();
-      return;
-    }
-    if (zone === "people" && peopleOn()) {
-      if (isHead()) $("people").classList.add("focus");
-      else if ($("people").children[pi]) $("people").children[pi].classList.add("focus");   // drawn yet
       hero(null);
       $("place").style.visibility = "";
       showPhoto();
@@ -1533,6 +1502,13 @@
     if (zone === "appmenu") { if (dy) { amI = Math.max(0, Math.min(amItems.length - 1, amI + dy)); renderAppMenu(); } return; }
     if (zone === "updask") { if (dy) { ai = Math.max(0, Math.min(1, ai + dy)); renderAsk(); } return; }
     if (zone === "inputs") { if (dy) { inI = Math.max(0, Math.min(inItems.length - 1, inI + dy)); renderInputMenu(); } return; }
+    if (zone === "clockbar") { ckMove(dx, dy); return; }
+    if (zone === "clock") {
+      // down (or either side) leaves the digits; up stays put, there is nothing above them
+      if (dy > 0 || dx) { zone = hasQuick() ? "quick" : "grid"; if (zone === "quick" && dx) qi = dx > 0 ? 0 : quickVisible().length - 1; }
+      paintFocus();
+      return;
+    }
     if (lift) { moveLift(dx, dy); return; }
     // Night with More apps open: the cards step aside, so up and down skip them
     var cards = NIGHT && expanded ? [] : shelfEls;
@@ -1541,21 +1517,12 @@
       paintFocus();
       return;
     }
-    if (zone === "pmenu") {
-      if (dy) {
-        var n = Math.max(0, Math.min(PEOPLE.length - 1, pmi + dy));
-        if (plift && n !== pmi) { var tmp = PEOPLE[pmi]; PEOPLE[pmi] = PEOPLE[n]; PEOPLE[n] = tmp; }
-        pmi = n;
-        renderPop();
-      }
-      return;
-    }
     if (zone === "np") {
       if (NIGHT) {
         // the first card of the row: right past the last button goes on to the shows
         if (dx > 0 && npI === 2) { if (cards.length) { zone = "shelf"; s = 0; } }
         else if (dx) npI = Math.max(0, Math.min(2, npI + dx));
-        else if (dy < 0) { if (peopleOn()) toPeople(); else if (hasQuick()) { zone = "quick"; qi = 0; } }
+        else if (dy < 0) { if (hasQuick()) { zone = "quick"; qi = 0; } }
         else if (dy > 0 && gridEls.length) {
           var nb = $("np").getBoundingClientRect();
           g = nearestInRow(0, nb.left + nb.width / 2);
@@ -1564,7 +1531,7 @@
       } else {
         // Classic: top right, under the quick buttons
         if (dx) npI = Math.max(0, Math.min(2, npI + dx));
-        else if (dy < 0) { if (hasQuick()) zone = "quick"; else if (peopleOn()) toPeople(); }
+        else if (dy < 0) { if (hasQuick()) zone = "quick"; }
         else if (dy > 0) {
           if (cards.length) zone = "shelf";
           else { zone = "grid"; g = Math.min(g, gridEls.length - 1); }
@@ -1575,27 +1542,20 @@
     }
     if (zone === "quick") {
       var nq = quickVisible().length;
-      if (dx < 0 && qi === 0) { if (peopleOn()) toPeople(); }
-      else if (dx) qi = Math.max(0, Math.min(nq - 1, qi + dx));
+      if (dx) qi = Math.max(0, Math.min(nq - 1, qi + dx));
+      else if (dy < 0 && NIGHT) zone = "clock";   // up from the quick buttons: the clock itself
       else if (dy > 0) {
         if (!NIGHT && npReach()) zone = "np";
-        else if (peopleOn()) toPeople();
         else if (cards.length) zone = "shelf";
         else { zone = "grid"; g = Math.min(GRID_COLS, gridEls.length) - 1; }
       }
       paintFocus();
       return;
     }
-    if (zone === "people") {
-      if (dx > 0 && (isHead() || pi === PEOPLE.length - 1)) { if (hasQuick()) { zone = "quick"; qi = 0; } else if (!NIGHT && npReach()) zone = "np"; }
-      else if (dx && !isHead()) {
-        // moving across the names only moves the outline; OK picks (you have to click to select), so passing a name on the way to Sleep timer changes nothing
-        pi = Math.max(0, Math.min(PEOPLE.length - 1, pi + dx));
-      } else if (dy > 0) zone = NIGHT && npReach() ? "np" : cards.length ? "shelf" : "grid";
-    } else if (zone === "shelf") {
+    if (zone === "shelf") {
       if (dx < 0 && s === 0 && NIGHT && npReach()) { zone = "np"; npI = 2; }
       else if (dx) s = Math.max(0, Math.min(shelfEls.length - 1, s + dx));
-      else if (dy < 0) { if (peopleOn()) toPeople(); else if (!NIGHT && npReach()) zone = "np"; else if (hasQuick()) { zone = "quick"; qi = 0; } }
+      else if (dy < 0) { if (!NIGHT && npReach()) zone = "np"; else if (hasQuick()) { zone = "quick"; qi = 0; } }
       else if (dy > 0 && gridEls.length) {
         // land on the app under the show
         var b = shelfEls[s].getBoundingClientRect();
@@ -1615,7 +1575,6 @@
       } else if (dy < 0 && row === 0) {
         if (cards.length) zone = "shelf";
         else if (npReach()) zone = "np";
-        else if (peopleOn()) toPeople();
         else if (hasQuick()) zone = "quick";   // offline the sleep and picture buttons are hidden
       } else if (dy < 0) {
         g -= GRID_COLS;
@@ -1626,7 +1585,7 @@
     paintFocus();
   }
 
-  // Start on the first app of the row, so Home always lands on an app, never on the people switch.
+  // Start on the first app of the row, so Home always lands on an app.
   function startFocus() {
     s = 0; g = 0;
     zone = gridEls.length ? "grid" : shelfEls.length ? "shelf" : "grid";
@@ -1635,11 +1594,12 @@
   function goHome() {
     if (zone === "settings") { setBack(); return; }
     if (zone === "smart") { closeSmart(); paintFocus(); return; }
+    if (zone === "clockbar") { closeClockBar(); return; }
+    if (zone === "clock") { startFocus(); paintFocus(); return; }
     if (zone === "gear") { closeGear(); paintFocus(); return; }
     if (zone === "appmenu") { closeAppMenu(); paintFocus(); return; }
     if (zone === "updask") { answerAsk(false); return; }   // BACK counts as "I'll check myself"
     if (lift) { dropLift(); return; }   // BACK puts a picked-up app down where it is
-    if (zone === "pmenu") { if (plift) dropPeople(); else closePop(); paintFocus(); return; }
     if (zone === "menu") { closeMenu(); paintFocus(); return; }   // BACK just closes the sleep choices
     if (zone === "inputs") { closeInputMenu(); paintFocus(); return; }
     if (expanded) { expanded = false; renderGrid(); }
@@ -1648,18 +1608,15 @@
   }
 
   // ---------------- actions ----------------
-  // A long press of OK (or the Menu key): pick up an app or a name to move it. Returns false when
-  // there is nothing to pick up here, and then the press counts as a normal OK.
+  // A long press of OK (or the Menu key): pick up an app to move it. Returns false when there is
+  // nothing to pick up here, and then the press counts as a normal OK.
   function hold() {
     touched = true;
     if (zone === "settings") return setHold();
+    if (zone === "clockbar") return true;   // holding OK in the drawer does nothing; a press still acts
+    if (zone === "clock") { openClockBar(); return true; }   // hold OK on the clock: the live drawer
     if (zone === "gear" || zone === "smart" || zone === "updask" || zone === "inputs") return false;
     if (lift) { dropLift(); return true; }
-    if (zone === "pmenu") {
-      if (plift) dropPeople();
-      else if (PEOPLE.length > 1) { plift = true; renderPop(); }
-      return true;
-    }
     if (zone === "grid" && NIGHT) return holdApp();
     return false;
   }
@@ -1668,6 +1625,8 @@
     touched = true;
     if (zone === "settings") { setActivate(); return; }
     if (zone === "smart") { window.smartHome.ok(); return; }
+    if (zone === "clockbar") { ckActivate(); return; }
+    if (zone === "clock") { openClockBar(); return; }
     if (zone === "gear") { if (gi === 0) openSettings(); else openTvSettings(); return; }
     if (zone === "appmenu") { doAppMenu(); return; }
     if (zone === "updask") { answerAsk(ai === 0); return; }
@@ -1675,21 +1634,7 @@
     if (zone === "menu") { setSleep(SLEEP_CHOICES[menuI]); paintFocus(); return; }
     if (zone === "inputs") { doInputMenu(); paintFocus(); return; }
     if (zone === "np") { npPress(); return; }
-    if (zone === "pmenu") {
-      if (plift) { dropPeople(); return; }
-      pickWho(PEOPLE[pmi].id);
-      closePop();
-      renderPeople();
-      paintFocus();
-      return;
-    }
     if (zone === "quick") { quickAction(); return; }
-    if (zone === "people") {
-      if (isHead()) { openPop(); paintFocus(); return; }
-      pickWho(PEOPLE[pi].id);
-      paintFocus();
-      return;
-    }
     if (zone === "shelf") {
       var it = data.shows[s];
       if (!it) return;
@@ -1699,7 +1644,7 @@
         status("");
         return;
       }
-      api("POST", "/api/continue/open", { id: it.id, who: NOBODY ? "both" : who }, 60000)
+      api("POST", "/api/continue/open", { id: it.id }, 60000)
         .then(function (res) { status(res.note || ""); })
         .catch(function (e) {
           // the bridge can't help: at least open the app it was in
@@ -1726,22 +1671,9 @@
       return;
     }
     opened(a.package);
-    // The tile rushes at the screen and the app starts once it has gone (item 4).
-    zoomOpen(el, function () {
-      if (TV && TV.launch(a.package)) return;
-      api("POST", "/api/launch", { app: a.id || a.package }).catch(function (e) { status(e.message); });
-    });
-  }
-
-  // OK on an app: the tile grows into the screen, then the app starts. The TV's reduced-motion switch
-  // skips it, and the class is always cleared, so a tile can never be left invisible.
-  function zoomOpen(el, then) {
-    if (!el || REDUCED) { then(); return; }
-    el.classList.add("opening");
-    setTimeout(function () {
-      then();
-      setTimeout(function () { el.classList.remove("opening"); }, 400);
-    }, 220);
+    // the app starts straight away (the launch transition was removed)
+    if (TV && TV.launch(a.package)) return;
+    api("POST", "/api/launch", { app: a.id || a.package }).catch(function (e) { status(e.message); });
   }
 
   // ---------------- Smart home: the rooms and scenes screen (smarthome.js) ----------------
@@ -1795,13 +1727,15 @@
 
   // ---------------- Home settings: couch-tv's own settings screen ----------------
   // A tvOS style list: the sections on the left, their rows on the right. Up and down move, OK
-  // changes a row, holding OK picks a row up to move it (scenes, apps, people, quick buttons), Back
+  // changes a row, holding OK picks a row up to move it (scenes, apps, quick buttons), Back
   // goes back a step and then closes. What is saved, and which copy wins: docs/CONFIG.md.
   // Saved on this TV (page storage and the launcher's own store, TVOS.keep) and, with a bridge,
   // also on the computer (/api/settings), so the phone and the TV agree.
   var ST_KEY = "tvhome.settings";
-  var SECS = [["language", "globe"], ["location", "pin"], ["weather", "cloud"], ["look", "look"],
-    ["apps", "apps"], ["people", "person"], ["quick", "bolt"], ["about", "info"]];
+  // The order asked for (item 4): Looks and Scenes, Quick buttons, Apps, Weather, Location, Language,
+  // Updates (added in start() when the launcher can update itself), About.
+  var SECS = [["look", "look"], ["clock", "clock"], ["quick", "bolt"], ["apps", "apps"], ["weather", "cloud"],
+    ["location", "pin"], ["language", "globe"], ["about", "info"]];
   var SET = { col: "secs", sec: 0, ri: 0, keyFocus: null, sub: null, lift: null, confirm: null, dirty: false, typing: null,
     msg: "", geo: { q: "", list: null, busy: false, err: false } };
   var REPO_URL = "github.com/Seagey/couch-tv";
@@ -1824,7 +1758,9 @@
   // Kept on this TV straight away; handed to the bridge a moment later (pending until it has it).
   function saveSettings() {
     var rec = keepSettings(true);
-    SET.dirty = true;
+    // Only a change made on the settings screen restarts the page when it closes; the clock drawer
+    // applies everything live, so closing Home settings afterwards should not reload the home.
+    if (zone === "settings") SET.dirty = true;
     if (OFFLINE || data.bridge === false) return;
     clearTimeout(pushTimer);
     pushTimer = setTimeout(function () { pushSettings(rec); }, 400);
@@ -1855,7 +1791,6 @@
 
   function staticText() {
     $("shelf-title").textContent = t("keep_watching");
-    $("people-pop").setAttribute("aria-label", t("who_watching"));
     $("apps-section").setAttribute("aria-label", t("apps"));
     $("settings").setAttribute("aria-label", t("set_title"));
   }
@@ -1895,8 +1830,8 @@
     if (id === "location") return locationRows();
     if (id === "weather") return weatherRows();
     if (id === "look") return lookRows();
+    if (id === "clock") return clockRows();
     if (id === "apps") return appsRows();
-    if (id === "people") return peopleRows();
     if (id === "quick") return quickRows();
     return aboutRows();
   }
@@ -2069,7 +2004,7 @@
     var secs = Math.round(SCENE_MS / 1000);
     rows.push({ kind: "cycle", key: "scene-secs", label: t("scene_secs"), value: t("n_secs", { n: secs }), act: function () {
       var i = SECS_STEPS.indexOf(secs), n = i < 0 ? 20 : SECS_STEPS[(i + 1) % SECS_STEPS.length];
-      ST.scene_seconds = n; SCENE_MS = n * 1000; saveSettings();
+      ST.scene_seconds = n; SCENE_MS = n * 1000; saveSettings(); armScenes();
     } });
     rows.push({ kind: "cycle", key: "clock", label: t("clock"), value: CLOCK24 ? t("clock_24") : t("clock_12"), act: function () {
       CLOCK24 = !CLOCK24; ST.clock = CLOCK24 ? "24h" : "12h"; saveSettings(); glassShown = ""; clock();
@@ -2081,7 +2016,9 @@
     // glass panels: off, on, on with no blur (for slower TVs)
     rows.push(head(t("glass_head")));
     rows.push({ kind: "cycle", key: "glass", label: t("glass"), value: GLASS === "lite" ? t("glass_lite") : GLASS === "on" ? t("on") : t("off"), act: function () {
-      GLASS = GLASS === "off" ? "on" : GLASS === "on" ? "lite" : "off"; ST.glass = GLASS; saveSettings();
+      GLASS = GLASS === "off" ? "on" : GLASS === "on" ? "lite" : "off"; ST.glass = GLASS;
+      applyGlass(); if (NIGHT) clock();
+      saveSettings();
     } });
     rows.push({ kind: "toggle", key: "glass-icons", label: t("glass_icons"), value: GLASS_ICONS ? t("on") : t("off"), act: function () {
       GLASS_ICONS = !GLASS_ICONS; ST.glass_icons = GLASS_ICONS; saveSettings();
@@ -2147,7 +2084,11 @@
     rows.push(info("photos-note", t("photos_note")));
     return rows;
   }
-  function setScenes(st) { ST.scene_order = st.order; ST.scenes_off = st.off; saveSettings(); }
+  function setScenes(st) {
+    ST.scene_order = st.order; ST.scenes_off = st.off;
+    saveSettings();
+    applyScenes();   // seen at once, and the turn timer is re-armed (item 1)
+  }
   function toggleScene(id) {
     var st = sceneState(), i = st.off.indexOf(id);
     if (i >= 0) st.off.splice(i, 1);
@@ -2302,94 +2243,6 @@
     renderGrid();
   }
 
-  // ---- people: the same list the phone's People sheet edits ----
-  function peopleRows() {
-    var list = NOBODY ? [] : PEOPLE, rows = [];
-    if (!list.length) rows.push(info("people-none", t("people_none")));
-    list.forEach(function (p) {
-      rows.push({ kind: "nav", key: "person:" + p.id, label: p.name, avatar: p, sub: p.id === who && list.length > 1 ? t("person_on") : "",
-        act: function () { openPerson(p.id); }, move: function (d) { movePerson(p.id, d); } });
-    });
-    if (list.length < 12) {
-      rows.push({ kind: "input", key: "people-add", label: t("people_add"), act: function () {
-        startTyping({ label: t("people_type"), value: "", submit: addPerson });
-      } });
-    } else rows.push(info("people-full", t("people_full")));
-    rows.push(info("people-note", t("people_note")));
-    return rows;
-  }
-  function personById(id) { return NOBODY ? null : PEOPLE.filter(function (p) { return p.id === id; })[0] || null; }
-  function openPerson(id) {
-    SET.sub = { back: "person:" + id, crumb: t("sec_people"),
-      title: function () { var p = personById(id); return p ? p.name : ""; },
-      rows: function () {
-        var p = personById(id);
-        if (!p) return [];
-        return [
-          { kind: "input", key: "p-name", label: t("person_name"), value: p.name, act: function () {
-            startTyping({ label: t("person_rename_type"), value: p.name, submit: function (v) { renamePerson(id, v); } });
-          } },
-          { kind: "action", key: "p-remove", label: t("person_remove", { name: p.name }), danger: true, act: function () { removePerson(id); } }
-        ];
-      } };
-    SET.keyFocus = "p-name";
-  }
-  function cleanName(v) { return String(v || "").replace(/\s+/g, " ").trim().slice(0, 40); }
-  function newPersonId(name, list) {
-    var base = name.toLowerCase();
-    try { base = base.normalize("NFD").replace(/[̀-ͯ]/g, ""); } catch (e) {}
-    base = base.replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 24) || "person";
-    if (["both", "all", "everyone", "shared", "together"].indexOf(base) >= 0) base += "-1";
-    var id = base, n = 2;
-    while (list.some(function (p) { return p.id.toLowerCase() === id; })) id = base + "-" + n++;
-    return id;
-  }
-  // Kept on this TV (pending) and handed to the bridge, which keeps it in bridge/data/people.json.
-  function savePeopleList() {
-    var list = NOBODY ? [] : PEOPLE.map(function (p) {
-      var o = { id: p.id, name: p.name };
-      ["colour", "kid", "guest"].forEach(function (k) { if (p[k] != null) o[k] = p[k]; });
-      return o;
-    });
-    keep("tvhome.people.list", { people: list, pending: true });
-    keep("tvhome.people.order", { ids: list.map(function (p) { return p.id; }), pending: false });
-    SET.dirty = true;
-    renderShelf();
-    if (OFFLINE || data.bridge === false) return;
-    api("POST", "/api/people", { people: list })
-      .then(function (r) { keep("tvhome.people.list", { people: r.people || list, pending: false }); }, function () {});
-  }
-  function addPerson(v) {
-    var name = cleanName(v), list = NOBODY ? [] : PEOPLE.slice();
-    if (!name) return;
-    if (list.length >= 12) { SET.msg = t("people_full"); return; }
-    var id = newPersonId(name, list);
-    list.push({ id: id, name: name });
-    setPeople(list);
-    savePeopleList();
-    SET.keyFocus = "person:" + id;
-  }
-  function renamePerson(id, v) {
-    var name = cleanName(v), p = personById(id);
-    if (!name || !p) return;
-    p.name = name;
-    savePeopleList();
-  }
-  function removePerson(id) {
-    if (NOBODY) return;
-    setPeople(PEOPLE.filter(function (p) { return p.id !== id; }));
-    savePeopleList();
-    SET.sub = null;
-    SET.keyFocus = "people-add";
-  }
-  function movePerson(id, d) {
-    if (NOBODY) return;
-    var i = PEOPLE.map(function (p) { return p.id; }).indexOf(id), j = i + d;
-    if (i < 0 || j < 0 || j >= PEOPLE.length) return;
-    var x = PEOPLE[i]; PEOPLE[i] = PEOPLE[j]; PEOPLE[j] = x;
-    renderPeople();
-  }
-
   // ---- quick buttons ----
   function quickRows() {
     var on = QUICK.slice(), order = on.concat(QUICK_ALL.filter(function (q) { return on.indexOf(q) < 0; }));
@@ -2473,7 +2326,7 @@
   function updAsk() {
     if (!UPD || !UPD.supported || UPD.answered) return;
     if (HOME.updates === "notify" || HOME.updates === "manual") { upd().auto(HOME.updates === "notify"); return; }
-    if (zone !== "grid" && zone !== "shelf" && zone !== "people" && zone !== "quick") return;
+    if (zone !== "grid" && zone !== "shelf" && zone !== "quick") return;
     zone = "updask"; ai = 0;
     clearFocus();
     renderAsk();
@@ -2524,7 +2377,7 @@
     return rows;
   }
 
-  // Back to config.json for everything but the people and the apps (which have their own lists).
+  // Back to config.json for everything but the apps (which have their own list).
   function resetSettings() {
     (Array.isArray(ST.photos) ? ST.photos : []).forEach(function (p) {
       if (p.file) try { if (TV && TV.removePhoto) TV.removePhoto(p.file); } catch (e) {}
@@ -2642,7 +2495,6 @@
     var k = SET.lift || "";
     SET.lift = null;
     if (k.indexOf("app:") === 0) { persistOrder(); SET.dirty = true; }
-    if (k.indexOf("person:") === 0) savePeopleList();
     if (zone === "settings") renderSettings();
   }
   function setBack() {
@@ -2659,8 +2511,7 @@
     var f = SET.col === "rows" && i === SET.ri, lifted = SET.lift === r.key;
     var cls = "srow k-" + r.kind + (f ? " focus" : "") + (lifted ? " lifted" : "") + (r.danger ? " danger" : "");
     var lead = "";
-    if (r.avatar) lead = avatarHTML(r.avatar);
-    else if (r.icon && iconUrl(r.icon)) lead = '<img class="sicon" src="' + esc(iconUrl(r.icon)) + '" alt="" onerror="this.remove()">';
+    if (r.icon && iconUrl(r.icon)) lead = '<img class="sicon" src="' + esc(iconUrl(r.icon)) + '" alt="" onerror="this.remove()">';
     else if (r.kind === "item") lead = '<span class="sicon none">' + (r.icon.indexOf("screen:") === 0 ? ICONS.screen : esc((r.label || "?").charAt(0).toUpperCase())) + "</span>";
     else if (r.thumb) lead = '<img class="sthumb" src="' + esc(r.thumb) + '" alt="" decoding="async" onerror="this.remove()">';
     var label = SET.confirm === r.key ? r.confirmText || t("confirm_remove") : r.label;
@@ -2716,6 +2567,339 @@
     $("set-input").addEventListener("input", function () { if (SET.typing && SET.typing.live) SET.typing.live(this.value); });
   }
 
+  // ---------------- the clock customiser ----------------
+  // Every choice lives in ST, so it is kept on this TV straight away (localStorage, and the launcher's
+  // own copy) and survives a restart. The digits are rebuilt in drawClocks(), never by editing #time:
+  // the Night clock is four clipped glass layers per scene.
+  function ck(key) { var v = ST[key]; return v == null ? CK_DEF[key] : v; }
+  function ckOpt(list, val) {
+    for (var i = 0; i < list.length; i++) if (list[i][0] === val) return list[i];
+    return list[0];
+  }
+  function ckLabel(list, val) { return t(ckOpt(list, val)[1]); }
+  function ckHex(id) { return ckOpt(CK_COLOURS, id)[2] || null; }
+  function hexA(hex, a) {
+    var m = /^#?([0-9a-f]{6})$/i.exec(hex || "");
+    if (!m) return "rgba(111, 214, 255, " + a + ")";
+    var n = parseInt(m[1], 16);
+    return "rgba(" + (n >> 16 & 255) + ", " + (n >> 8 & 255) + ", " + (n & 255) + ", " + a + ")";
+  }
+  function applyClock() {
+    var r = document.documentElement;
+    // keep every other class (theme-night, glass, night...), replace only the clock's own
+    r.className = r.className.split(/\s+/).filter(function (c) { return c && c.indexOf("ck-") !== 0; }).join(" ");
+    r.classList.add("ck-layout-" + ck("clock_layout"));
+    r.classList.add("ck-font-" + ck("clock_font"));
+    r.classList.add("ck-fill-" + ck("clock_fill"));
+    r.classList.add("ck-align-" + ck("clock_align"));
+    r.classList.add("ck-color-" + ck("clock_color"));
+    if (ck("clock_depth")) r.classList.add("ck-depth");
+    if (ck("clock_two")) r.classList.add("ck-two");
+    if (ck("clock_outline")) r.classList.add("ck-outline");
+    if (ck("clock_date") === "off") r.classList.add("ck-nodate");
+    r.style.setProperty("--ck-scale", ck("clock_scale"));
+    r.style.setProperty("--ck-weight", ck("clock_weight"));
+    var hex = ckHex(ck("clock_color")) || "#ffffff";
+    r.style.setProperty("--ck-c1", hex);
+    // the second colour (two-tone minutes): the accent, or white when the digits are already it
+    var accent = ck("clock_color") === "white" || ck("clock_color") === "oled" ? "#6fd6ff" : hex;
+    r.style.setProperty("--ck-c2", accent === hex ? "#ffffff" : accent);
+    r.style.setProperty("--ck-glow", hexA(accent === "#ffffff" ? "#6fd6ff" : accent, 0.5));
+    if (ck("clock_color") === "wallpaper") r.style.removeProperty("--ck-user-tint");
+    else r.style.setProperty("--ck-user-tint", hex);
+    glassShown = "";
+    if (NIGHT) { clock(); placeDate(); }
+    positionClockFocus(zone === "clock");
+  }
+  function clockHTML(hm) {
+    var s = String(hm), i = s.indexOf(":"), h = i < 0 ? s : s.slice(0, i), m = i < 0 ? "" : s.slice(i + 1);
+    return '<span class="ck"><span class="ck-h">' + esc(h) + '</span><span class="ck-colon">:</span>' +
+      '<span class="ck-m">' + esc(m) + "</span></span>";
+  }
+  // The date sits just above the digits (or below them), wherever the clock has been moved to.
+  // The built-in scenes have hand-placed dates, so those stay as they are unless the clock is
+  // centred on the screen or the date was asked for below the digits.
+  function placeDate() {
+    if (!NIGHT) return;
+    var d = $("date");
+    if (!d) return;
+    if (ck("clock_date") === "off") { d.style.display = "none"; return; }
+    d.style.display = "";
+    var custom = ck("clock_date") === "below" || ck("clock_align") === "mid";
+    var el = document.querySelector(".scene.on .gclock:not(.under)");
+    if (!custom || !el) { d.style.top = ""; return; }
+    var r = el.getBoundingClientRect(), rem = innerWidth / 120;
+    var top = ck("clock_date") === "below" ? r.bottom + 0.55 * rem : r.top - 3.375 * rem;
+    d.style.top = Math.max(0.5 * rem, Math.round(top)) + "px";
+  }
+  // The ring around the digits while the clock itself has the focus (up from the quick buttons).
+  function positionClockFocus(on) {
+    var f = $("ckfocus");
+    if (!f) return;
+    if (!on) { f.classList.remove("on"); return; }
+    var el = document.querySelector(".scene.on .gclock:not(.under)");
+    if (!el) { f.classList.remove("on"); return; }
+    var rect = null;
+    try {
+      var rg = document.createRange();
+      rg.selectNodeContents(el.querySelector(".rim") || el);
+      rect = rg.getBoundingClientRect();
+    } catch (e) {}
+    if (!rect || !rect.width) rect = el.getBoundingClientRect();
+    var rem = innerWidth / 120, pad = 1.25 * rem;
+    f.style.left = (rect.left - pad) + "px";
+    f.style.top = (rect.top - pad) + "px";
+    f.style.width = (rect.width + pad * 2) + "px";
+    f.style.height = (rect.height + pad * 2) + "px";
+    f.classList.add("on");
+  }
+  function setClock(key, val) {
+    ST[key] = val;
+    applyClock();
+    saveSettings();
+    if (CKB.open) renderCkbar();
+    // a new face has to be in before the glass fill is measured again
+    if ((key === "clock_font" || key === "clock_weight") && document.fonts) {
+      var lf = CK_LOAD[ck("clock_font")] || CK_LOAD.antonio;
+      document.fonts.load(lf[0] + ' 10px "' + lf[1] + '"').then(function () { applyClock(); }, function () {});
+    }
+  }
+  function ckStep(key, list, d) {
+    var cur = ck(key), i = 0;
+    for (var k = 0; k < list.length; k++) if (list[k][0] === cur) i = k;
+    i = (i + d + list.length) % list.length;
+    setClock(key, list[i][0]);
+  }
+  function resetClock() {
+    Object.keys(CK_DEF).forEach(function (k) { delete ST[k]; });
+    applyClock();
+    saveSettings();
+    if (CKB.open) renderCkbar();
+    if (zone === "settings") renderSettings();
+  }
+  // ---- the clock card's controls: a compact row per setting, an icon on the left ----
+  var CKI = {
+    shape: '<svg viewBox="0 0 24 24"><rect x="3" y="4" width="7" height="16" rx="2"/><rect x="14" y="4" width="7" height="7" rx="2"/><rect x="14" y="13" width="7" height="7" rx="2"/></svg>',
+    type: '<svg viewBox="0 0 24 24"><path d="M4 19 9.5 5h3L19 19"/><path d="M7 13.5h8"/></svg>',
+    colour: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 4a8 8 0 0 1 0 16"/><path d="M9 9.5h.01"/></svg>',
+    inline: '<svg viewBox="0 0 24 24"><rect x="3" y="8" width="8" height="8" rx="2"/><rect x="13" y="8" width="8" height="8" rx="2"/></svg>',
+    split: '<svg viewBox="0 0 24 24"><rect x="7" y="3" width="10" height="8" rx="2"/><rect x="7" y="13" width="10" height="8" rx="2"/></svg>',
+    layout: '<svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="6" rx="2"/><rect x="3" y="14" width="18" height="6" rx="2"/></svg>',
+    align: '<svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h10M4 18h16"/></svg>',
+    size: '<svg viewBox="0 0 24 24"><path d="M9 4H4v5M15 4h5v5M9 20H4v-5M15 20h5v-5"/></svg>',
+    date: '<svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="15" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>',
+    font: '<svg viewBox="0 0 24 24"><path d="M4 19 10 5h4l6 14"/><path d="M7 14h10"/></svg>',
+    weight: '<svg viewBox="0 0 24 24"><path d="M5 5h6a4 4 0 0 1 0 8H5zM5 13h7a4 4 0 0 1 0 8H5z"/></svg>',
+    depth: '<svg viewBox="0 0 24 24"><rect x="3" y="3" width="13" height="13" rx="3"/><path d="M10 10h11v11H10z"/></svg>'
+  };
+  var CK_TAB_ICONS = [CKI.shape, CKI.type, CKI.colour];
+  function ckSegRow(label, icon, opts, cur, set) {
+    return { label: label, icon: icon,
+      control: function () {
+        var v = cur();
+        return '<span class="ckseg">' + opts.map(function (o) {
+          return '<span class="ckopt' + (o[0] === v ? " on" : "") + '">' + (o[2] || "") +
+            (o[2] ? "" : esc(t(o[1]))) + "</span>";
+        }).join("") + "</span>";
+      },
+      adjust: function (d) {
+        var v = cur(), i = -1;
+        for (var k = 0; k < opts.length; k++) if (opts[k][0] === v) i = k;
+        if (i < 0) i = 0;
+        else i = (i + (d > 0 ? 1 : -1) + opts.length) % opts.length;
+        set(opts[i][0]);
+      } };
+  }
+  function ckLayoutRow() {
+    return ckSegRow("ck_layout", CKI.layout,
+      [["single", "ck_l_inline", CKI.inline], ["stack", "ck_l_split", CKI.split]],
+      function () { return ck("clock_layout") === "single" ? "single" : "stack"; },
+      function (v) { setClock("clock_layout", v); });
+  }
+  function ckPosRow() {
+    return { label: "ck_align", icon: CKI.align,
+      control: function () {
+        var v = ck("clock_align");
+        return '<span class="ckdots">' + CK_POS.map(function (o) {
+          return '<i class="' + (o[0] === v ? "on" : "") + '"></i>';
+        }).join("") + "</span>";
+      },
+      adjust: function (d) {
+        var v = ck("clock_align"), i = 0;
+        for (var k = 0; k < CK_POS.length; k++) if (CK_POS[k][0] === v) i = k;
+        i = (i + (d > 0 ? 1 : -1) + CK_POS.length) % CK_POS.length;
+        setClock("clock_align", CK_POS[i][0]);
+      } };
+  }
+  function ckScaleRow() {
+    return { label: "ck_size", icon: CKI.size,
+      control: function () {
+        return '<span class="ckstep"><i>−</i><b>' + Math.round(ck("clock_scale") * 100) + '%</b><i>+</i></span>';
+      },
+      adjust: function (d) {
+        var v = ck("clock_scale"), i = 0, best = 1e9;
+        for (var k = 0; k < CK_SIZES.length; k++) {
+          var df = Math.abs(CK_SIZES[k][0] - v);
+          if (df < best) { best = df; i = k; }
+        }
+        i = Math.max(0, Math.min(CK_SIZES.length - 1, i + (d > 0 ? 1 : -1)));
+        setClock("clock_scale", CK_SIZES[i][0]);
+      } };
+  }
+  function ckDateRow() {
+    return { label: "ck_date", icon: CKI.date,
+      control: function () {
+        return '<span class="ckswitch' + (ck("clock_date") !== "off" ? " on" : "") + '"><i></i></span>';
+      },
+      adjust: function () { setClock("clock_date", ck("clock_date") === "off" ? "above" : "off"); } };
+  }
+  function ckPlaceRow() {
+    return ckSegRow("ck_date_pos", CKI.date,
+      [["above", "ck_d_above"], ["below", "ck_d_below"]],
+      function () { return ck("clock_date") === "below" ? "below" : "above"; },
+      function (v) { setClock("clock_date", v); });
+  }
+  function ckFontRow() {
+    var opts = [["inter", "ck_f_modern", "Inter"], ["antonio", "ck_f_tall", "Antonio"],
+      ["archivo", "ck_f_bold", "'Archivo Black',sans-serif"], ["nunito", "ck_f_rounded", "Nunito"],
+      ["fraunces", "ck_f_editorial", "Fraunces"]];
+    return { label: "ck_font", icon: CKI.font,
+      control: function () {
+        var v = ck("clock_font");
+        return '<span class="ckfonts">' + opts.map(function (o) {
+          return '<span class="ckfont' + (o[0] === v ? " on" : "") + '" style="font-family:' + o[2] + '">' + esc(t(o[1])) + "</span>";
+        }).join("") + "</span>";
+      },
+      adjust: function (d) {
+        var v = ck("clock_font"), i = 0;
+        for (var k = 0; k < opts.length; k++) if (opts[k][0] === v) i = k;
+        i = (i + (d > 0 ? 1 : -1) + opts.length) % opts.length;
+        setClock("clock_font", opts[i][0]);
+      } };
+  }
+  function ckWeightRow() {
+    var opts = [[300, "ck_w_light"], [500, "ck_w_regular"], [800, "ck_w_bold"]];
+    return ckSegRow("ck_weight", CKI.weight, opts,
+      function () { return ck("clock_weight"); },
+      function (v) { setClock("clock_weight", v); });
+  }
+  function ckDepthRow() {
+    return { label: "ck_depth", icon: CKI.depth,
+      control: function () { return '<span class="ckswitch' + (ck("clock_depth") ? " on" : "") + '"><i></i></span>'; },
+      adjust: function () { setClock("clock_depth", !ck("clock_depth")); } };
+  }
+  var CK_SWATCH = [["wallpaper", "ck_sw_wallpaper", "linear-gradient(135deg,#9fc4ff,#ffc4d8 55%,#ffe0a8)"],
+    ["white", "ck_sw_white", "#ffffff"], ["cyan", "ck_sw_frosted", "#6fd6ff"],
+    ["amber", "ck_sw_sunset", "#f0a45c"], ["oled", "ck_sw_obsidian", "#0b0b10"]];
+  function ckSwatchRow() {
+    return { label: "ck_colour", icon: CKI.colour,
+      control: function () {
+        var v = ck("clock_color");
+        return '<span class="ckswatch">' + CK_SWATCH.map(function (o) {
+          return '<i class="' + (o[0] === v ? "on" : "") + '" style="background:' + o[2] + '"></i>';
+        }).join("") + "</span>";
+      },
+      adjust: function (d) {
+        var v = ck("clock_color"), i = 0;
+        for (var k = 0; k < CK_SWATCH.length; k++) if (CK_SWATCH[k][0] === v) i = k;
+        i = (i + (d > 0 ? 1 : -1) + CK_SWATCH.length) % CK_SWATCH.length;
+        setClock("clock_color", CK_SWATCH[i][0]);
+      } };
+  }
+  function ckRows(tab) {
+    if (tab === 0) return [ckLayoutRow(), ckPosRow(), ckScaleRow(), ckDateRow(), ckPlaceRow()];
+    if (tab === 1) return [ckFontRow(), ckWeightRow()];
+    return [ckDepthRow(), ckSwatchRow()];
+  }
+  var CKB = { open: false, tab: 0, row: 0, onTabs: false, foot: false, fi: 0 };
+  function renderCkbar() {
+    var rows = ckRows(CKB.tab);
+    $("ckbar-tabs").innerHTML = '<span class="ck-ind" style="transform:translateX(' + (CKB.tab * 100) + '%)"></span>' +
+      CK_TABS.map(function (k, i) {
+        return '<span class="cktab' + (CKB.tab === i ? " on" : "") + (CKB.onTabs && CKB.tab === i ? " focus" : "") + '">' +
+          CK_TAB_ICONS[i] + "<span>" + esc(t(k)) + "</span></span>";
+      }).join("");
+    $("ckbar-rows").innerHTML = rows.map(function (r, i) {
+      return '<div class="ckrow' + (!CKB.onTabs && !CKB.foot && CKB.row === i ? " focus" : "") + '">' +
+        '<span class="ckrow-ico">' + r.icon + '</span>' +
+        '<span class="ckrow-label">' + esc(t(r.label)) + '</span>' +
+        '<span class="ckrow-ctl">' + r.control() + "</span></div>";
+    }).join("");
+    $("ckbar-reset").className = "ckfoot-reset" + (CKB.foot && CKB.fi === 0 ? " focus" : "");
+    $("ckbar-done").className = "ckfoot-done" + (CKB.foot && CKB.fi === 1 ? " focus" : "");
+    $("ckbar-done-text").textContent = t("ck_done");
+    $("ckbar").classList.add("on");
+  }
+  function openClockBar() {
+    CKB.open = true; CKB.tab = 0; CKB.row = 0; CKB.onTabs = false; CKB.foot = false; CKB.fi = 0;
+    zone = "clockbar";
+    clearTimeout(hintTimer); hintFlash = "";
+    clearFocus();   // the dock's tile stops glowing while the drawer is up
+    renderCkbar();
+    positionClockFocus(false);
+    renderHint();
+  }
+  function closeClockBar() {
+    CKB.open = false; CKB.foot = false;
+    $("ckbar").classList.remove("on");
+    zone = "clock";
+    paintFocus();
+  }
+  function ckMove(dx, dy) {
+    var rows = ckRows(CKB.tab);
+    if (CKB.onTabs) {
+      if (dx) { CKB.tab = (CKB.tab + dx + CK_TABS.length) % CK_TABS.length; CKB.row = 0; }
+      else if (dy > 0) CKB.onTabs = false;
+    } else if (CKB.foot) {
+      if (dx) CKB.fi = (CKB.fi + (dx > 0 ? 1 : -1) + 2) % 2;
+      else if (dy < 0) { CKB.foot = false; CKB.row = rows.length - 1; }
+    } else if (dy < 0 && CKB.row === 0) {
+      CKB.onTabs = true;
+    } else if (dy > 0 && CKB.row === rows.length - 1) {
+      CKB.foot = true; CKB.fi = 0;
+    } else if (dy) {
+      CKB.row = Math.max(0, Math.min(rows.length - 1, CKB.row + dy));
+    } else if (dx) {
+      rows[CKB.row].adjust(dx);
+    }
+    renderCkbar();
+  }
+  function ckActivate() {
+    if (CKB.onTabs) { CKB.onTabs = false; CKB.row = 0; renderCkbar(); return; }
+    if (CKB.foot) {
+      if (CKB.fi === 0) resetClock(); else closeClockBar();
+      return;
+    }
+    var rows = ckRows(CKB.tab);
+    if (rows[CKB.row]) rows[CKB.row].adjust(1);
+  }
+  // The same controls in Home settings, so the clock can always be changed with the remote alone.
+  function clockRows() {
+    var rows = [head(t("ck_head"))];
+    function cycle(key, label, list) {
+      rows.push({ kind: "cycle", key: "ck-" + key, label: t(label), value: ckLabel(list, ck(key)),
+        act: function () { ckStep(key, list, 1); }, adjust: function (d) { ckStep(key, list, d); } });
+    }
+    function toggle(key, label) {
+      rows.push({ kind: "check", key: "ck-" + key, label: t(label), checked: !!ck(key),
+        act: function () { setClock(key, !ck(key)); } });
+    }
+    cycle("clock_layout", "ck_layout", CK_LAYOUTS);
+    cycle("clock_font", "ck_font", CK_FONTS);
+    cycle("clock_weight", "ck_weight", CK_WEIGHTS);
+    cycle("clock_scale", "ck_size", CK_SIZES);
+    cycle("clock_align", "ck_align", CK_ALIGNS);
+    cycle("clock_fill", "ck_fill", CK_FILLS);
+    cycle("clock_color", "ck_colour", CK_COLOURS);
+    cycle("clock_date", "ck_date", CK_DATES);
+    toggle("clock_depth", "ck_depth");
+    toggle("clock_two", "ck_two");
+    toggle("clock_outline", "ck_outline");
+    rows.push({ kind: "nav", key: "ck-reset", label: t("ck_reset"), sub: t("ck_reset_sub"), act: resetClock });
+    rows.push(info("ck-note", t("ck_note")));
+    return rows;
+  }
+
   // ---------------- keys: any normal TV remote, keyboard or game controller ----------------
   // The full table is in docs/REMOTES.md. The launcher also turns BUTTON_A, BUTTON_SELECT and
   // NUMPAD_ENTER into OK and BUTTON_B and ESCAPE into Back before the page sees them. Any other key
@@ -2732,6 +2916,7 @@
 
   // Focus is never lost: after any key, if nothing shows focus, the first dock app gets it.
   function ensureFocus() {
+    if (zone === "clock" || zone === "clockbar") return;   // the ring and the drawer are their own focus
     if (document.querySelector(".focus")) return;
     zone = "grid"; g = 0;
     paintFocus();
@@ -2804,7 +2989,8 @@
   // couch-tv has no system home behind it, so it opens couch-tv's own gear menu, like the gear tile.
   function isSettings(e) { return e.key === "Settings" || e.key === "TvSettings" || e.keyCode === 176; }
   function settingsKey() {
-    if (zone === "gear" || zone === "settings" || zone === "smart" || zone === "appmenu" || zone === "updask" || zone === "inputs") { goHome(); return; }
+    if (zone === "gear" || zone === "settings" || zone === "smart" || zone === "appmenu" || zone === "updask" ||
+      zone === "inputs" || zone === "clock" || zone === "clockbar") { goHome(); return; }
     openGear();
   }
 
@@ -2865,23 +3051,6 @@
     paintFocus();
   }
 
-  // The bridge's people list (the phone edits it). An order made on this TV while the bridge was
-  // away is handed over first.
-  function bridgePeople(j) {
-    var list = j.people || [];
-    var lo = kept("tvhome.people.order"), lst = kept("tvhome.people.list");
-    if (lst && lst.pending && Array.isArray(lst.people)) {
-      // people added, renamed or removed in Home settings while the computer was off
-      list = lst.people;
-      api("POST", "/api/people", { people: lst.people })
-        .then(function (r) { keep("tvhome.people.list", { people: r.people || lst.people, pending: false }); }, function () {});
-    } else if (lo && lo.pending && lo.ids) {
-      list = localPeopleOrder(list, true);
-      api("POST", "/api/people", { order: lo.ids })
-        .then(function () { keep("tvhome.people.order", { ids: lo.ids, pending: false }); }, function () {});
-    }
-    if (zone !== "pmenu") setPeople(list);
-  }
   function bridgeOrder(j) {
     data.order = { saved: !!j.saved, line: j.line, packages: (j.apps || []).map(function (a) { return a.package; }) };
     var lo = kept("tvhome.order.tv");
@@ -2905,35 +3074,26 @@
 
   function refresh() {
     // never reshuffle under something being moved, or under the settings screen
-    if (lift || zone === "pmenu" || zone === "settings" || zone === "gear" || zone === "smart" || zone === "updask") return Promise.resolve();
+    if (lift || zone === "settings" || zone === "gear" || zone === "smart" || zone === "updask") return Promise.resolve();
     if (OFFLINE) {
-      // only the TV's own apps, in the order last saved; no shows, no Screens
+      // only the TV's own apps, in the order last saved; no Screens
       if (TV) data.apps = sortApps(nativeApps() || []);
       else if (window.MOCK_APPS) data.apps = sortApps(window.MOCK_APPS.slice());
       data.bridge = false;
-      // Keep watching with no computer: Android's own Watch Next list, the same for everyone in the house
+      // Keep watching with no computer: Android's own Watch Next list
+      data.shows = [];
       if (TV && TV.watchNext) {
-        var wn = [];
-        try { wn = JSON.parse(TV.watchNext()) || []; } catch (e) {}
-        PEOPLE.forEach(function (p) { data.showsBy[p.id] = wn; });
+        try { data.shows = JSON.parse(TV.watchNext()) || []; } catch (e) {}
       }
       detectNew();
       status(ALONE ? "" : t("computer_off"), true);
       render();
       return Promise.resolve();
     }
-    var people = api("GET", "/api/people").then(bridgePeople, function () {});
     var jobs = [
-      people.then(function () {
-        return Promise.all(PEOPLE.map(function (p) {
-          return api("GET", "/api/continue?who=" + p.id, null, 9000).then(function (j) { data.showsBy[p.id] = (j.items || []).slice(0, KEEP_MAX); });
-        }));
-      }),
+      // Keep watching for this TV (the bridge gathers it across everyone who watched here)
+      api("GET", "/api/continue", null, 9000).then(function (j) { data.shows = (j.items || []).slice(0, KEEP_MAX); }),
       api("GET", "/api/screens").then(function (j) { data.screens = j.screens || []; }),
-      // whoever the phone remote or this TV last set as watching
-      api("GET", "/api/who").then(function (j) {
-        return people.then(function () { if (PEOPLE.some(function (p) { return p.id === j.who; }) && !touched) { who = j.who; } });
-      }),
       (TV || PREVIEW || MOCK) ? Promise.resolve() : api("GET", "/api/apps").then(function (j) { data.bridgeApps = j.apps || []; }),
       // the order arranged on the phone (or with this TV's remote)
       NIGHT ? api("GET", "/api/app-order").then(bridgeOrder) : Promise.resolve(),
@@ -2945,8 +3105,8 @@
     ];
     return Promise.all(jobs.map(function (p) { return p.then(function () { return true; }, function () { return false; }); }))
       .then(function (ok) {
-        if (lift || zone === "pmenu" || zone === "settings" || zone === "gear" || zone === "smart" || zone === "updask") return;
-        data.bridge = ok[0] || ok[2];
+        if (lift || zone === "settings" || zone === "gear" || zone === "smart" || zone === "updask") return;
+        data.bridge = ok[0] || ok[1];
         var apps = TV ? nativeApps() : (window.MOCK_APPS ? window.MOCK_APPS.slice() : null);
         if (!apps) apps = (data.bridgeApps || []).filter(function (a) { return a.installed !== false && a.id !== "home"; })
           .map(function (a) { return { kind: "app", id: a.id, name: a.name, package: a.package, colour: a.colour }; });
@@ -2995,9 +3155,10 @@
       // photos; ?scene=<id>: one of your own scenes)
       var first = (Q.match(/[?&]scene=([a-z0-9]+)/) || [])[1];
       showScene(Math.max(0, SCENES.map(function (s) { return s.own ? "own" : s.id; }).indexOf(first)));
-      if (SCENES.length > 1) setInterval(nextScene, SCENE_MS);
-      // the clock font must be in before the glass is measured
-      if (document.fonts) document.fonts.load("300 10px Antonio").then(function () { glassShown = ""; clock(); });
+      armScenes();
+      // the chosen clock font must be in before the glass is measured
+      var lf = CK_LOAD[ck("clock_font")] || CK_LOAD.antonio;
+      if (document.fonts) document.fonts.load(lf[0] + ' 10px "' + lf[1] + '"').then(function () { glassShown = ""; clock(); }, function () {});
       refreshWeather();
       setInterval(refreshWeather, WX_EVERY * 60000);
     }
@@ -3006,8 +3167,7 @@
     startVideo();
     photoTimer = setInterval(nextPhoto, PHOTO_MS);
     var cached = load();
-    if (cached) { data.showsBy = cached.showsBy || data.showsBy; data.screens = cached.screens || []; data.order = cached.order || null; }
-    setPeople(PEOPLE);   // the cache may predate someone new
+    if (cached) { data.screens = cached.screens || []; data.order = cached.order || null; }
     if (OFFLINE) {   // no bridge: an order made with this TV's remote wins
       var lo = kept("tvhome.order.tv");
       if (lo && lo.packages) data.order = { saved: true, line: lo.line, packages: lo.packages };
@@ -3019,10 +3179,8 @@
     if (!OFFLINE) refreshQuick();
     refreshMusic();
     setInterval(refreshMusic, 5000);
-    // This TV says who is on its couch first, so what plays here is logged for them (each TV
-    // keeps its own); then the lists. Once the home is up: the one-time "tell you about new versions?" question.
-    var hello = OFFLINE ? Promise.resolve() : api("POST", "/api/who", { who: who }).catch(function () {});
-    hello.then(refresh).then(function () { mark("home-painted-live"); updTell(); updAsk(); });
+    // The lists, then once the home is up: the one-time "tell you about new versions?" question.
+    Promise.resolve().then(refresh).then(function () { mark("home-painted-live"); updTell(); updAsk(); });
   }
 
   if (MOCK || PREVIEW) {

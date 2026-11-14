@@ -147,6 +147,20 @@
             </intent-filter>
             <meta-data android:name="android.accessibilityservice" android:resource="@xml/key_watch" />
         </service>
+        <!-- Keep watching on TVs whose own Watch Next list is switched off (Fire OS): what the media
+             apps are playing right now. Off until a computer grants notification access over ADB
+             (apply.sh: cmd notification allow_listener app.couchtv.launcher/app.couchtv.launcher.MediaWatch);
+             without it Android never binds this and the row is Android's Watch Next list alone.
+             It reads only what a media app already publishes, never notification text. -->
+        <service
+            android:name=".MediaWatch"
+            android:exported="true"
+            android:label="Keep watching"
+            android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE">
+            <intent-filter>
+                <action android:name="android.service.notification.NotificationListenerService" />
+            </intent-filter>
+        </service>
         <receiver android:name=".FireWatch$Restore" android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />

@@ -15,14 +15,11 @@
 <video class="bgvid" id="bgvid" muted loop playsinline preload="none" aria-hidden="true"></video>
 <div class="scenes" id="scenes" aria-hidden="true"></div>
 <div class="scrim" aria-hidden="true"></div>
+<!-- the clock's focus ring: up from the quick buttons lands here, OK opens the clock drawer -->
+<div class="ckfocus" id="ckfocus" aria-hidden="true"></div>
 
 <header class="top">
   <div class="top-left">
-    <div class="people-wrap">
-      <div class="people" id="people"></div>
-      <!-- three or more people: the list the head icon opens -->
-      <div class="people-pop" id="people-pop" role="listbox" aria-label="Who is watching"></div>
-    </div>
     <div class="hero" id="hero" aria-live="polite">
       <h1 id="hero-title"></h1>
       <p id="hero-sub"></p>
@@ -67,6 +64,19 @@
 <div class="app-pop" id="app-pop" role="menu"></div>
 <!-- the Input button's menu: the TV's inputs, then Bluetooth and Network (#30), drawn by app.js -->
 <div class="app-pop" id="inputs-pop" role="menu"></div>
+
+<!-- hold OK on the clock, or the Clock quick button: the live clock drawer, drawn by app.js.
+     A compact frosted card in the bottom-right corner, so the clock and its depth effect stay in view. -->
+<div class="ckbar" id="ckbar" role="dialog" aria-modal="false" aria-label="Clock">
+  <div class="ckbar-head">
+    <span class="ckbar-tabs" id="ckbar-tabs"></span>
+  </div>
+  <div class="ckbar-rows" id="ckbar-rows"></div>
+  <div class="ckbar-foot">
+    <span class="ckfoot-reset" id="ckbar-reset" aria-label="Reset">↺</span>
+    <span class="ckfoot-done" id="ckbar-done">✓ <span id="ckbar-done-text"></span></span>
+  </div>
+</div>
 
 <!-- Home settings: couch-tv's own settings screen, drawn by app.js ("home settings") -->
 <div class="settings" id="settings" role="dialog" aria-modal="true" aria-label="Home settings">

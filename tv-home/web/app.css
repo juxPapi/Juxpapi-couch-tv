@@ -29,6 +29,17 @@
 
   --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
   --pan: 0%;             /* how far the photo has drifted: set by app.js as the selection moves (item 7) */
+
+  /* the selection, a frosted glass ring in place of a plain white outline: a bright hairline, a soft
+     inner bloom, and a wide translucent halo (item 7) */
+  --ring: inset 0 0 0 0.09375rem rgba(255, 255, 255, 0.85),
+    inset 0 0 0.875rem rgba(255, 255, 255, 0.16),
+    0 0 0 0.25rem rgba(255, 255, 255, 0.14),
+    0 0 1.75rem rgba(255, 255, 255, 0.3);
+  --ring-sm: inset 0 0 0 0.078125rem rgba(255, 255, 255, 0.85),
+    inset 0 0 0.5rem rgba(255, 255, 255, 0.16),
+    0 0 0 0.1875rem rgba(255, 255, 255, 0.16),
+    0 0 1.25rem rgba(255, 255, 255, 0.32);
 }
 
 * { box-sizing: border-box; margin: 0; }
@@ -108,19 +119,9 @@ body {
 .shelf-head { display: flex; align-items: baseline; justify-content: space-between; height: 2.25rem; margin-bottom: 1.25rem; }
 .shelf-head h2 { font-size: 1.875rem; line-height: 2.25rem; font-weight: 620; color: rgba(255, 255, 255, 0.82); letter-spacing: -0.01em; text-shadow: 0 0.125rem 1rem rgba(0, 0, 0, 0.4); }
 .status { font-size: 1.4375rem; color: var(--warn); }
-/* whose shows: one tab per person, like Apple TV's tab bar */
 .shelf-head { justify-content: flex-start; gap: 1.5rem; align-items: center; height: 3rem; }
 /* top left, the show title sits under it */
 .top-left { display: flex; flex-direction: column; align-items: flex-start; gap: 1.5rem; }
-.people.empty, .people.none { display: none; }
-.people { display: flex; width: max-content; text-shadow: none; gap: 0.5rem; padding: 0.375rem; border-radius: 2rem; background: rgba(255, 255, 255, 0.12); }
-.person {
-  font-size: 1.4375rem; line-height: 2.25rem; font-weight: 600; padding: 0 1.25rem; border-radius: 1.5rem;
-  color: rgba(255, 255, 255, 0.78); transition: background 200ms var(--ease), color 200ms var(--ease), transform 200ms var(--ease);
-}
-.person.on { background: #fff; color: #111; }
-.person.focus { transform: scale(1.08); box-shadow: 0 0 0 0.1875rem #fff, 0 0.5rem 1.25rem rgba(0, 0, 0, 0.35); }
-.person.focus:not(.on) { background: rgba(255, 255, 255, 0.16); color: #fff; }
 .shelf-none { font-size: 1.8125rem; line-height: var(--shelf-h); color: rgba(255, 255, 255, 0.7); text-shadow: 0 0.125rem 1rem rgba(0, 0, 0, 0.4); }
 .shelf-head .status { margin-left: auto; padding-right: var(--safe-x); }
 
@@ -239,7 +240,8 @@ body {
 .scene .shade { position: absolute; top: 0; right: 0; bottom: 0; left: 0; }
 .gclock {
   position: absolute; left: 0; right: 0; top: 9.375rem; text-align: center; white-space: nowrap;
-  font-family: "Antonio", "Arial Narrow", sans-serif; font-weight: 300; font-size: 25rem; line-height: 0.82; letter-spacing: -0.02em;
+  font-family: "Antonio", "Arial Narrow", sans-serif; font-weight: 300;
+  font-size: calc(var(--ck-base, 25rem) * var(--ck-scale, 1)); line-height: 0.82; letter-spacing: -0.02em;
   filter: drop-shadow(0 0.375rem 1.75rem rgba(0, 0, 0, 0.16));
 }
 .gclock .fill {
@@ -260,16 +262,16 @@ body {
 .s-night .gclock .fill { filter: brightness(1.15) saturate(1.2); opacity: 0.9; }
 .s-night .gclock .rim { color: rgba(255, 200, 215, 0.06); -webkit-text-stroke-color: rgba(255, 215, 225, 0.5); }
 /* 1 Golden hour: a little smaller, low enough for the volcano's tip to rise into the digits */
-.s-golden .gclock { top: 9.5rem; font-size: 24.375rem; }
+.s-golden .gclock { top: 9.5rem; --ck-base: 24.375rem; }
 /* 2 Waterline: the clock sits on the water (app.js water: the underside of the surface); the part
    under it is blurred like a reflection */
 .s-water .shade { background: linear-gradient(180deg, rgba(0, 12, 24, 0.42) 0%, rgba(0, 12, 24, 0.12) 40%, rgba(0, 0, 0, 0) 52%, rgba(0, 20, 40, 0.5) 100%); }
-.s-water .gclock { top: 16.75rem; font-size: 26.25rem; filter: drop-shadow(0 0.5rem 1.875rem rgba(0, 20, 40, 0.35)); }
+.s-water .gclock { top: 16.75rem; --ck-base: 26.25rem; filter: drop-shadow(0 0.5rem 1.875rem rgba(0, 20, 40, 0.35)); }
 .s-water .gclock.under { filter: blur(0.1375rem); opacity: 0.78; transform: translateX(0.3125rem); }
 .s-water .gclock.under .fill { filter: hue-rotate(-8deg) saturate(1.4); }
 .s-water .gclock.under .rim { -webkit-text-stroke-color: rgba(170, 240, 255, 0.5); }
 /* 3 Fog: a big dark clock on the left, sinking into the misty hills */
-.s-fog .gclock { left: 6rem; right: auto; top: 10.75rem; font-size: 29.375rem; text-align: left; filter: none; }
+.s-fog .gclock { left: 6rem; right: auto; top: 10.75rem; --ck-base: 29.375rem; text-align: left; filter: none; }
 .s-fog .gclock .fill { filter: brightness(0.46) saturate(0.8) contrast(1.1); opacity: 0.8; }
 .s-fog .gclock .rim { color: transparent; -webkit-text-stroke-color: rgba(255, 255, 255, 0.6); }
 .s-fog .gclock .sheen { display: none; }
@@ -278,9 +280,10 @@ body {
 .s-dawn .gclock { top: 14.375rem; filter: drop-shadow(0 0.5rem 2.125rem rgba(60, 30, 10, 0.3)); }
 
 /* glass, as on the lock screen */
-.theme-night .people, .theme-night .qbtn, .theme-night .grid, .theme-night .ncard {
-  background: rgba(30, 20, 28, 0.32); -webkit-backdrop-filter: blur(1.75rem) saturate(170%); backdrop-filter: blur(1.75rem) saturate(170%);
-  box-shadow: inset 0 0 0 0.0625rem rgba(255, 210, 220, 0.16), inset 0 0.0625rem 0 rgba(255, 220, 230, 0.14), 0 1.5rem 3.75rem rgba(0, 0, 0, 0.28);
+/* Glass panels off: flat dark panels, no blur, so turning the glass on is unmistakable. */
+.theme-night .qbtn, .theme-night .grid, .theme-night .ncard {
+  background: rgba(10, 12, 16, 0.88);
+  box-shadow: inset 0 0 0 0.0625rem rgba(255, 255, 255, 0.05), 0 1.25rem 3rem rgba(0, 0, 0, 0.35);
 }
 .theme-night .hero, .theme-night .time, .theme-night .place { display: none; }
 .theme-night .date {
@@ -290,7 +293,7 @@ body {
 }
 .theme-night .date .wx { color: rgba(255, 255, 255, 0.78); font-weight: 400; }
 .theme-night .date { white-space: nowrap; }
-/* fitDate() in app.js: not enough room between the people switch and the quick buttons */
+/* fitDate() in app.js: not enough room between the clock and the quick buttons */
 .theme-night .date.tight .ww, .theme-night .date.tighter .wx { display: none; }
 /* the date sits just above each scene's clock; it fades out while the scenes swap */
 .theme-night .date.swap { opacity: 0; }
@@ -328,7 +331,7 @@ body {
 .ncard i { display: block; font-style: normal; font-size: 1.3125rem; line-height: 1.75rem; color: rgba(255, 255, 255, 0.78); }
 .ncard .nbar { display: block; height: 0.3125rem; margin-top: 0.625rem; border-radius: 0.2rem; background: rgba(255, 255, 255, 0.25); overflow: hidden; }
 .ncard .nbar i { height: 100%; background: #fff; }
-.ncard.focus { transform: scale(1.05); box-shadow: 0 0 0 0.1875rem #fff, 0 1.25rem 2.5rem rgba(0, 0, 0, 0.45); }
+.ncard.focus { transform: scale(1.05); box-shadow: var(--ring), 0 1.25rem 2.5rem rgba(0, 0, 0, 0.45); }
 
 /* the dock */
 .theme-night .apps { top: auto; bottom: 2.875rem; left: 50%; right: auto; transform: translateX(-50%); }
@@ -345,8 +348,8 @@ body {
 .theme-night .app .face { border-radius: 26.5%; corner-shape: superellipse(1.3); }
 }
 .theme-night .app:not(.focus) .face img { filter: brightness(0.82); }
-.theme-night .app.focus { transform: scale(1.16) translateY(-0.625rem); }
-.theme-night .app.focus .face { box-shadow: 0 0 0 0.25rem #fff, 0 1.125rem 2.5rem rgba(0, 0, 0, 0.4); }
+.theme-night .app.focus { transform: scale(1.26) translateY(-0.75rem); }
+.theme-night .app.focus .face { box-shadow: 0 1.25rem 2.75rem rgba(0, 0, 0, 0.5); filter: brightness(1.08); }
 .theme-night .app .face.tool { background: rgba(255, 255, 255, 0.14); }
 .theme-night .app .face.word { font-size: 1.125rem; padding: 0 0.5rem; background: #2a2a30; }
 /* no name under the icons: hidden by sight, kept for screen readers */
@@ -354,47 +357,9 @@ body {
 /* More apps: the dock grows into a full list and the cards step aside */
 .theme-night.expanded .shelf { display: none; }
 
-/* OK on an app: the tile rushes at the screen as the app opens (item 4) */
-.app.opening { z-index: 6; animation: zoom-open 240ms cubic-bezier(0.3, 0.7, 0.2, 1) forwards; }
-.theme-night .app.opening { animation-name: zoom-open-night; }
-@keyframes zoom-open { from { transform: scale(1.16); opacity: 1; } to { transform: scale(1.78); opacity: 0; filter: blur(4px); } }
-@keyframes zoom-open-night { from { transform: scale(1.26) translateY(-0.75rem); opacity: 1; } to { transform: scale(2) translateY(-0.75rem); opacity: 0; filter: blur(4px); } }
-@media (prefers-reduced-motion: reduce) { .app.opening { animation: none; } }
-
 @media (prefers-reduced-motion: reduce) {
   .ncard { transition: none; }
 }
-
-/* ================= people: a head icon and its list, for three or more ================= */
-.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
-.people-wrap { position: relative; }
-.avatar {
-  display: flex; align-items: center; justify-content: center; flex: none; width: 2.25rem; height: 2.25rem; border-radius: 50%;
-  font-size: 1.25rem; line-height: 1; font-weight: 700; color: #fff; text-shadow: 0 0.0625rem 0.25rem rgba(0, 0, 0, 0.25);
-  box-shadow: inset 0 0 0 0.0625rem rgba(255, 255, 255, 0.28);
-}
-.people.head { padding: 0.375rem; border-radius: 50%; transition: transform 200ms var(--ease), box-shadow 200ms var(--ease); }
-.people.head .avatar { width: 4.75rem; height: 4.75rem; font-size: 2.125rem; }
-.theme-night .people.head.focus, .people.head.focus { transform: scale(1.08); box-shadow: 0 0 0 0.1875rem #fff, 0 0.75rem 1.75rem rgba(0, 0, 0, 0.4); }
-.people-pop {
-  display: none; position: absolute; left: 0; top: calc(100% + 1rem); z-index: 5; min-width: 24rem; padding: 0.625rem;
-  border-radius: 2rem; background: rgba(28, 24, 30, 0.62); -webkit-backdrop-filter: blur(1.75rem) saturate(170%); backdrop-filter: blur(1.75rem) saturate(170%);
-  box-shadow: inset 0 0 0 0.0625rem rgba(255, 220, 230, 0.16), 0 1.5rem 3.75rem rgba(0, 0, 0, 0.45); text-shadow: none;
-}
-.people-pop.on { display: block; }
-.plist { display: flex; flex-direction: column; gap: 0.25rem; }
-.prow {
-  display: flex; align-items: center; gap: 1rem; padding: 0.5rem 1.25rem 0.5rem 0.5rem; border-radius: 1.5rem;
-  font-size: 1.6875rem; line-height: 2.25rem; color: rgba(255, 255, 255, 0.88);
-  transition: transform 200ms var(--ease), background 200ms var(--ease), box-shadow 200ms var(--ease);
-}
-.prow .avatar { width: 3rem; height: 3rem; font-size: 1.375rem; }
-.prow b { flex: 1; min-width: 0; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.pmark { display: flex; font-style: normal; }
-.pmark svg { width: 1.75rem; height: 1.75rem; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
-.prow.focus { background: #fff; color: #111; transform: scale(1.04); }
-.prow.lifted { transform: scale(1.07) translateX(0.5rem); box-shadow: 0 1rem 2rem rgba(0, 0, 0, 0.4); animation: wiggle 0.32s ease-in-out infinite alternate; }
-.phint { margin: 0.625rem 0.75rem 0.25rem; font-size: 1.1875rem; line-height: 1.5rem; font-weight: 500; color: rgba(255, 255, 255, 0.62); }
 
 /* ================= moving apps with the TV remote, and new apps ================= */
 @keyframes wiggle { from { rotate: -2deg; } to { rotate: 2deg; } }
@@ -403,7 +368,7 @@ body {
   background: #0a84ff; box-shadow: 0 0 0 0.1875rem rgba(0, 0, 0, 0.3);
 }
 .theme-night .app.lifted, .theme-night .app.lifted.focus { z-index: 3; transform: scale(1.2) translateY(-1.5rem); }
-.theme-night .app.lifted .face { animation: wiggle 0.32s ease-in-out infinite alternate; box-shadow: 0 0 0 0.25rem #fff, 0 1.75rem 3rem rgba(0, 0, 0, 0.55); }
+.theme-night .app.lifted .face { animation: wiggle 0.32s ease-in-out infinite alternate; box-shadow: var(--ring), 0 1.75rem 3rem rgba(0, 0, 0, 0.55); }
 .theme-night .app.lifted .face img { filter: none; }
 .theme-night.lifting .app:not(.lifted) .face { opacity: 0.7; }
 /* while an app is moved (or a hint shows over the dock) the cards step aside, so the hint has the space */
@@ -417,7 +382,7 @@ body {
   box-shadow: inset 0 0 0 0.0625rem rgba(255, 210, 220, 0.16), 0 1rem 2.5rem rgba(0, 0, 0, 0.28);
 }
 @media (prefers-reduced-motion: reduce) {
-  .prow.lifted, .theme-night .app.lifted .face { animation: none; }
+  .theme-night .app.lifted .face { animation: none; }
 }
 
 /* ================= the household's own photos as scenes (Home settings, Your photos) =================
@@ -431,7 +396,7 @@ body {
    and on the page, and the classes: x-left or x-right, f-inter, t-dark on the scene; mine-left,
    mine-right, mine-below, mine-inter, mine-dark on the page for the date. Without them it is the built-in look. */
 .s-mine .shade { background: linear-gradient(180deg, rgba(0, 0, 0, 0.22) 0%, rgba(0, 0, 0, 0) 40%); }
-.s-mine .gclock { top: var(--my-top, 9.375rem); font-size: var(--my-size, 25rem); }
+.s-mine .gclock { top: var(--my-top, 9.375rem); --ck-base: var(--my-size, 25rem); }
 .s-mine.x-left .gclock { left: 6rem; right: auto; text-align: left; }
 .s-mine.x-right .gclock { left: auto; right: 6rem; text-align: right; }
 .s-mine.f-inter .gclock { font-family: "Inter", sans-serif; font-weight: var(--my-weight, 600); letter-spacing: -0.05em; line-height: 0.8; }
@@ -554,9 +519,8 @@ body {
 .sicon.none svg { width: 1.75rem; height: 1.75rem; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
 .srow.focus .sicon.none { background: rgba(0, 0, 0, 0.08); }
 .sthumb { flex: none; width: 5.5rem; height: 3.125rem; border-radius: 0.625rem; object-fit: cover; background: rgba(255, 255, 255, 0.08); }
-.srow .avatar { width: 3rem; height: 3rem; font-size: 1.375rem; }
-/* the text box for a place, a name or a photo's address */
-.set-type { display: none; flex: none; margin: 0 0 1.25rem; padding: 0.875rem 1.75rem 1rem; border-radius: 1.5rem; background: rgba(255, 255, 255, 0.12); box-shadow: inset 0 0 0 0.1875rem #fff; }
+/* the text box for a place or a photo's address */
+.set-type { display: none; flex: none; margin: 0 0 1.25rem; padding: 0.875rem 1.75rem 1rem; border-radius: 1.5rem; background: rgba(255, 255, 255, 0.12); box-shadow: var(--ring-sm); }
 .set-type.on { display: block; }
 .set-type-label { display: block; margin-bottom: 0.25rem; font-size: 1.3125rem; line-height: 1.75rem; font-weight: 600; color: rgba(255, 255, 255, 0.7); }
 .set-type input {
@@ -652,53 +616,46 @@ body {
 
 /* ================= Glass panels (Home settings, Look, Glass; home.glass) =================
    html.glass: clear, softly blurred panels with a light edge and a highlight along the top, so the
-   photo or the video shows through. Night: the dock, the Keep watching cards, the people switch,
-   the quick buttons and the date. Classic: the clock sits on a glass card, the plain tiles (App
+   photo or the video shows through. Night: the dock, the Keep watching cards, the quick buttons
+   and the date. Classic: the clock sits on a glass card, the plain tiles (App
    Store, Settings, More apps) turn to glass and every tile gets a light edge; the photo stays clear.
    html.glass-lite (On, no blur): the same panels and edges with no blur, for older or slower TVs.
    A TV whose browser cannot blur at all gets the same, by itself (@supports at the end). */
 .glass {
-  --glass-tint: linear-gradient(160deg, rgba(255, 255, 255, 0.2) 0%, rgba(255, 255, 255, 0.05) 42%, rgba(255, 255, 255, 0.09) 100%), rgba(22, 22, 30, 0.2);
-  --glass-solid: linear-gradient(160deg, rgba(255, 255, 255, 0.16) 0%, rgba(255, 255, 255, 0.04) 42%, rgba(255, 255, 255, 0.07) 100%), rgba(24, 24, 32, 0.6);
+  --glass-tint: linear-gradient(160deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.03) 42%, rgba(255, 255, 255, 0.04) 100%), rgba(12, 14, 19, 0.52);
+  --glass-solid: linear-gradient(160deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.02) 42%, rgba(255, 255, 255, 0.04) 100%), rgba(16, 18, 23, 0.86);
   --glass-edge: inset 0 0 0 0.0625rem rgba(255, 255, 255, 0.26), inset 0 0.125rem 0.0625rem -0.0625rem rgba(255, 255, 255, 0.6),
     inset 0 -0.0625rem 0 rgba(255, 255, 255, 0.1), 0 1.5rem 3.5rem rgba(0, 0, 0, 0.3);
-  --glass-blur: blur(2.25rem) saturate(185%) brightness(1.06);
+  --glass-blur: blur(1.75rem) saturate(140%) brightness(0.85);
 }
-.glass.theme-night .people:not(.focus), .glass.theme-night .qbtn:not(.focus), .glass.theme-night .grid,
-.glass.theme-night .ncard:not(.focus), .glass.theme-night .date .dline,
-.glass:not(.theme-night) .clock, .glass:not(.theme-night) .people, .glass:not(.theme-night) .qbtn:not(.focus),
+.glass.theme-night .qbtn:not(.focus), .glass.theme-night .grid,
+.glass.theme-night .ncard:not(.focus),
+.glass:not(.theme-night) .clock, .glass:not(.theme-night) .qbtn:not(.focus),
 .glass:not(.theme-night) .app .face.tool, .glass:not(.theme-night) .app .face.word {
   background: var(--glass-tint); box-shadow: var(--glass-edge);
   -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur);
 }
 /* a focused card keeps its white ring, on glass */
 .glass.theme-night .ncard.focus { background: var(--glass-tint); -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur); }
-/* Night: the date line becomes a small glass pill above the clock */
-.glass.theme-night .date .dline { display: inline-block; padding: 0.375rem 1.5rem; border-radius: 1.75rem; }
+
 /* Classic: a glass card behind the clock (the words stay where they were), a light edge on every tile */
 .glass:not(.theme-night) .clock { padding: 1.25rem 1.75rem 0.75rem 2.5rem; margin: -1.25rem -1.75rem 0 0; border-radius: 2.25rem; }
 .glass:not(.theme-night) .tile:not(.focus) .face { box-shadow: 0 0 0 0.0625rem rgba(255, 255, 255, 0.24), 0 0.75rem 1.75rem rgba(0, 0, 0, 0.35); }
 /* On, no blur: the panels stay, a little darker so words still read */
-.glass.glass-lite.theme-night .people:not(.focus),
 .glass.glass-lite.theme-night .qbtn:not(.focus),
 .glass.glass-lite.theme-night .grid,
 .glass.glass-lite.theme-night .ncard,
-.glass.glass-lite.theme-night .date .dline,
 .glass.glass-lite:not(.theme-night) .clock,
-.glass.glass-lite:not(.theme-night) .people,
 .glass.glass-lite:not(.theme-night) .qbtn:not(.focus),
 .glass.glass-lite:not(.theme-night) .app .face.tool,
 .glass.glass-lite:not(.theme-night) .app .face.word {
   background: var(--glass-solid); -webkit-backdrop-filter: none; backdrop-filter: none;
 }
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-.glass.theme-night .people:not(.focus),
 .glass.theme-night .qbtn:not(.focus),
 .glass.theme-night .grid,
 .glass.theme-night .ncard,
-.glass.theme-night .date .dline,
 .glass:not(.theme-night) .clock,
-.glass:not(.theme-night) .people,
 .glass:not(.theme-night) .qbtn:not(.focus),
 .glass:not(.theme-night) .app .face.tool,
 .glass:not(.theme-night) .app .face.word { background: var(--glass-solid); }
@@ -732,21 +689,27 @@ body {
   --gi-tint: linear-gradient(160deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.02) 45%, rgba(255, 255, 255, 0.05) 100%), rgba(16, 16, 24, 0.11);
   --gi-blur: blur(0.375rem) saturate(180%); --gi-glyph: 0.88; --gc-op: 0.6; --lq-fill: 0.55; --lq-rim: 0.7;
 }
+/* How clear: one ramp, frosted (1) to very clear (5). All stay smoked, so the
+   panels never turn see-through; each step shows more of the scene and blurs less. */
 .glass.ga-1 {
-  --glass-tint: linear-gradient(160deg, rgba(255, 255, 255, 0.32) 0%, rgba(255, 255, 255, 0.1) 42%, rgba(255, 255, 255, 0.15) 100%), rgba(22, 22, 30, 0.34);
-  --glass-blur: blur(3.25rem) saturate(170%) brightness(1.06);
+  --glass-tint: linear-gradient(160deg, rgba(255, 255, 255, 0.14) 0%, rgba(255, 255, 255, 0.05) 42%, rgba(255, 255, 255, 0.07) 100%), rgba(10, 12, 17, 0.80);
+  --glass-blur: blur(3.25rem) saturate(150%) brightness(0.86);
 }
 .glass.ga-2 {
-  --glass-tint: linear-gradient(160deg, rgba(255, 255, 255, 0.26) 0%, rgba(255, 255, 255, 0.075) 42%, rgba(255, 255, 255, 0.12) 100%), rgba(22, 22, 30, 0.27);
-  --glass-blur: blur(2.75rem) saturate(178%) brightness(1.06);
+  --glass-tint: linear-gradient(160deg, rgba(255, 255, 255, 0.11) 0%, rgba(255, 255, 255, 0.04) 42%, rgba(255, 255, 255, 0.05) 100%), rgba(11, 13, 18, 0.66);
+  --glass-blur: blur(2.75rem) saturate(150%) brightness(0.88);
+}
+.glass.ga-3 {
+  --glass-tint: linear-gradient(160deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.03) 42%, rgba(255, 255, 255, 0.04) 100%), rgba(12, 14, 19, 0.52);
+  --glass-blur: blur(1.75rem) saturate(150%) brightness(0.9);
 }
 .glass.ga-4 {
-  --glass-tint: linear-gradient(160deg, rgba(255, 255, 255, 0.13) 0%, rgba(255, 255, 255, 0.03) 42%, rgba(255, 255, 255, 0.06) 100%), rgba(22, 22, 30, 0.13);
-  --glass-blur: blur(1.25rem) saturate(190%) brightness(1.05);
+  --glass-tint: linear-gradient(160deg, rgba(255, 255, 255, 0.06) 0%, rgba(255, 255, 255, 0.02) 42%, rgba(255, 255, 255, 0.03) 100%), rgba(12, 14, 19, 0.36);
+  --glass-blur: blur(1.25rem) saturate(155%) brightness(0.94);
 }
 .glass.ga-5 {
-  --glass-tint: linear-gradient(160deg, rgba(255, 255, 255, 0.07) 0%, rgba(255, 255, 255, 0.015) 42%, rgba(255, 255, 255, 0.035) 100%), rgba(22, 22, 30, 0.08);
-  --glass-blur: blur(0.5rem) saturate(195%) brightness(1.04);
+  --glass-tint: linear-gradient(160deg, rgba(255, 255, 255, 0.04) 0%, rgba(255, 255, 255, 0.012) 42%, rgba(255, 255, 255, 0.02) 100%), rgba(12, 14, 19, 0.22);
+  --glass-blur: blur(0.75rem) saturate(160%) brightness(0.97);
 }
 /* the frosted clock: steps 4 and 5 let more of the photo through */
 .theme-night .scene .gclock { opacity: var(--gc-op); }
@@ -837,13 +800,10 @@ body {
 .no-flex-gap .quick > * + *, .no-flex-gap .qbtns > * + * { margin-left: 0.75rem; }
 .no-flex-gap .qbtn > * + * { margin-left: 0.625rem; }
 .no-flex-gap .top-left > * + * { margin-top: 1.5rem; }
-.no-flex-gap .people > * + * { margin-left: 0.5rem; }
 .no-flex-gap .shelf-track > * + * { margin-left: var(--gap); }
 .no-flex-gap.theme-night .shelf-track > * + * { margin-left: 1.375rem; }
 .no-flex-gap .ncard > * + * { margin-left: 1.25rem; }
 .no-flex-gap .ncard .nap > * + * { margin-left: 0.625rem; }
-.no-flex-gap .plist > * + * { margin-top: 0.25rem; }
-.no-flex-gap .prow > * + * { margin-left: 1rem; }
 .no-flex-gap .grow > * + * { margin-left: 1.25rem; }
 .no-flex-gap .set-secs > * + * { margin-top: 0.375rem; }
 .no-flex-gap .ssec > * + * { margin-left: 1.25rem; }
@@ -905,10 +865,10 @@ body {
   box-shadow: inset 0 0.0625rem 0 rgba(255, 255, 255, 1), 0 0.75rem 1.75rem rgba(0, 0, 0, 0.3);
 }
 .glass .srow, .glass .ssec, .glass .grow { transition: transform 260ms var(--ease), background 260ms var(--ease), box-shadow 260ms var(--ease); }
-/* calmer focus on the dock and the Keep watching cards: a lift and a deeper shadow, a thinner ring */
+/* calmer focus on the dock and the Keep watching cards: a lift and a deeper shadow */
 .glass.theme-night .app.focus { transform: scale(1.1) translateY(-0.5rem); }
-.glass.theme-night .app.focus .face { box-shadow: 0 0 0 0.1875rem #fff, 0 1.5rem 3rem rgba(0, 0, 0, 0.45); }
-.glass .ncard.focus { transform: scale(1.03) translateY(-0.25rem); box-shadow: inset 0 0 0 0.125rem rgba(255, 255, 255, 0.85), 0 1.5rem 3rem rgba(0, 0, 0, 0.42); }
+.glass.theme-night .app.focus .face { box-shadow: 0 1.5rem 3rem rgba(0, 0, 0, 0.45); }
+.glass .ncard.focus { transform: scale(1.03) translateY(-0.25rem); box-shadow: var(--ring-sm), 0 1.5rem 3rem rgba(0, 0, 0, 0.42); }
 .glass .settings.on .set-side, .glass .settings.on .set-main { animation: glass-settle 380ms var(--ease) both; }
 .glass .gear-pop.on, .glass .app-pop.on, .glass .sleep-menu.on { animation: glass-settle 260ms var(--ease) both; }
 @keyframes glass-settle { from { opacity: 0; transform: translateY(0.5rem); } to { opacity: 1; transform: none; } }
@@ -946,3 +906,221 @@ html.has-pointer.glass .ssec:hover {
   box-shadow: inset 0 0.0625rem 0 rgba(255, 255, 255, 1), 0 0.75rem 1.75rem rgba(0, 0, 0, 0.3);
 }
 .old-engine .settings, .old-engine .smart, .old-engine.lighter .settings, .old-engine.lighter .smart, .old-engine.glass .settings { background: #0a080c; }
+
+/* ================= the clock customiser =================
+   Home settings, Clock, or the live drawer (hold OK on the clock, or the Clock quick button).
+   The Night clock is four clipped glass layers per scene (.edge/.fill/.sheen/.rim); each layer now
+   carries the same .ck block (hour, colon, minute), so split layouts and an outline minute are drawn
+   without touching the photo-clip technique. Every control writes to localStorage straight away. */
+@font-face {
+  font-family: "Archivo Black"; font-weight: 400; font-display: block;
+  src: url(fonts/archivo-black-latin-400.woff2) format("woff2");
+}
+@font-face {
+  font-family: "Nunito"; font-weight: 800; font-display: block;
+  src: url(fonts/nunito-latin-800.woff2) format("woff2");
+}
+@font-face {
+  font-family: "Fraunces"; font-weight: 600; font-display: block;
+  src: url(fonts/fraunces-latin-600.woff2) format("woff2");
+}
+:root {
+  --ck-scale: 1; --ck-weight: 300;
+  --ck-c1: #ffffff; --ck-c2: #6fd6ff; --ck-glow: rgba(111, 214, 255, 0.5);
+}
+
+/* ---- typography presets ---- */
+.ck-font-antonio .scenes .gclock { font-family: "Antonio", "Arial Narrow", sans-serif !important; letter-spacing: -0.02em; }
+.ck-font-inter .scenes .gclock { font-family: "Inter", system-ui, sans-serif !important; letter-spacing: -0.05em; }
+.ck-font-archivo .scenes .gclock { font-family: "Archivo Black", "Inter", sans-serif !important; letter-spacing: -0.035em; }
+.ck-font-nunito .scenes .gclock { font-family: "Nunito", "Inter", sans-serif !important; letter-spacing: -0.025em; }
+.ck-font-fraunces .scenes .gclock { font-family: "Fraunces", Georgia, serif !important; letter-spacing: -0.015em; }
+.scenes .gclock { font-weight: var(--ck-weight, 300) !important; }
+
+/* ---- split layouts ---- */
+.gclock .ck { display: inline; }
+.gclock .ck-colon { display: inline; }
+.ck-layout-stack .scenes .gclock .ck,
+.ck-layout-offset .scenes .gclock .ck,
+.ck-layout-tight .scenes .gclock .ck {
+  display: flex; flex-direction: column; align-items: center; width: max-content;
+  margin-left: auto; margin-right: auto; font-size: 0.54em; line-height: 0.8;
+}
+.ck-layout-tight .scenes .gclock .ck { font-size: 0.56em; line-height: 0.62; }
+.ck-layout-offset .scenes .gclock .ck { align-items: flex-start; }
+.ck-layout-offset .scenes .gclock .ck-m { margin-left: 0.32em; }
+.ck-layout-stack .scenes .gclock .ck-h, .ck-layout-stack .scenes .gclock .ck-m,
+.ck-layout-offset .scenes .gclock .ck-h, .ck-layout-offset .scenes .gclock .ck-m,
+.ck-layout-tight .scenes .gclock .ck-h, .ck-layout-tight .scenes .gclock .ck-m { display: block; }
+.ck-layout-stack .scenes .gclock .ck-colon,
+.ck-layout-offset .scenes .gclock .ck-colon,
+.ck-layout-tight .scenes .gclock .ck-colon { display: none; }
+/* the digits stay tight and stacked even in the condensed face */
+.ck-font-archivo .scenes .gclock .ck, .ck-font-nunito .scenes .gclock .ck { line-height: 0.88; }
+
+/* ---- position ---- */
+/* as designed: each scene keeps its own clock place (the default, so nothing moves on upgrade) */
+.ck-align-left .scenes .gclock { left: 6rem !important; right: auto !important; text-align: left !important; }
+.ck-align-left .scenes .gclock .ck { margin-left: 0 !important; margin-right: auto !important; align-items: flex-start; }
+.ck-align-left .theme-night .date { left: 6.5rem !important; right: auto !important; text-align: left !important; }
+/* top centre: the middle of the screen, whatever the scene was designed with */
+.ck-align-center .scenes .gclock { left: 0 !important; right: 0 !important; text-align: center !important; }
+.ck-align-center .scenes .gclock .ck { margin-left: auto !important; margin-right: auto !important; align-items: center; }
+.ck-align-center .theme-night .date { left: 0 !important; right: 0 !important; text-align: center !important; }
+/* centre stage: the middle of the home above the dock, never under Keep watching */
+.ck-align-right .scenes .gclock { left: auto !important; right: 6rem !important; text-align: right !important; }
+.ck-align-right .scenes .gclock .ck { margin-left: auto !important; margin-right: 0 !important; align-items: flex-end; }
+.ck-align-right .theme-night .date { left: auto !important; right: 6.5rem !important; text-align: right !important; }
+
+.ck-align-mid .scenes .gclock {
+  left: 0 !important; right: 0 !important; text-align: center !important;
+  top: calc(39vh - 0.44 * var(--ck-base, 25rem) * var(--ck-scale, 1)) !important;
+}
+.ck-align-mid .scenes .gclock .ck { margin-left: auto !important; margin-right: auto !important; align-items: center; }
+.ck-align-mid .theme-night .date { left: 0 !important; right: 0 !important; text-align: center !important; }
+
+/* ---- fill and colour ---- */
+.ck-fill-solid .scenes .gclock .fill,
+.ck-fill-outline .scenes .gclock .fill {
+  background-image: none !important; filter: none !important; opacity: 1 !important;
+  color: var(--ck-c1); -webkit-text-fill-color: var(--ck-c1);
+}
+.ck-fill-outline .scenes .gclock .fill { color: transparent; -webkit-text-fill-color: transparent; }
+.ck-fill-solid .scenes .gclock .sheen,
+.ck-fill-outline .scenes .gclock .sheen { display: none; }
+.ck-fill-solid .scenes .gclock .rim { color: transparent; -webkit-text-stroke-color: rgba(255, 255, 255, 0.24); }
+.ck-fill-outline .scenes .gclock .rim { color: transparent; -webkit-text-stroke-color: var(--ck-c1); -webkit-text-stroke-width: 0.12rem; }
+/* adaptive: the digits take the scene's own colour, or the one picked in Colour */
+.ck-fill-adaptive .scenes .gclock .fill {
+  background-image: none !important; filter: none !important; opacity: 1 !important;
+  color: var(--ck-user-tint, var(--ck-adaptive, #ffffff));
+  -webkit-text-fill-color: var(--ck-user-tint, var(--ck-adaptive, #ffffff));
+}
+.ck-fill-adaptive .scenes .gclock .sheen { display: none; }
+.ck-fill-adaptive .scenes .gclock .rim { color: transparent; -webkit-text-stroke-color: rgba(255, 255, 255, 0.35); }
+.s-golden { --ck-adaptive: #ffd479; }
+.s-fog { --ck-adaptive: #dfe9ff; }
+.s-water { --ck-adaptive: #8fe6ff; }
+.s-dawn { --ck-adaptive: #ffb38a; }
+.s-own { --ck-adaptive: #ffffff; }
+.s-mine { --ck-adaptive: var(--ck-scene, #ffffff); }
+
+/* two-tone: the minutes in the second colour */
+.ck-two .scenes .gclock .fill .ck-m { opacity: 0.72; }
+.ck-two .scenes .gclock .rim .ck-m { -webkit-text-stroke-color: var(--ck-c2); }
+.ck-fill-solid.ck-two .scenes .gclock .fill .ck-m,
+.ck-fill-adaptive.ck-two .scenes .gclock .fill .ck-m {
+  opacity: 1; color: var(--ck-c2); -webkit-text-fill-color: var(--ck-c2);
+}
+
+/* bold mode: the hour filled, the minute an outline only */
+.ck-outline .scenes .gclock .fill .ck-m,
+.ck-outline .scenes .gclock .sheen .ck-m,
+.ck-outline .scenes .gclock .edge .ck-m { visibility: hidden; }
+.ck-outline .scenes .gclock .rim .ck-m { -webkit-text-stroke-color: var(--ck-c1); -webkit-text-stroke-width: 0.11rem; }
+
+/* 3D depth: a crisp top highlight, two soft shadows and a coloured ambient glow */
+.ck-depth .scenes .gclock {
+  filter: drop-shadow(0 0.08rem 0 rgba(255, 255, 255, 0.5))
+    drop-shadow(0 0.3rem 0.2rem rgba(0, 0, 0, 0.35))
+    drop-shadow(0 0.9rem 1.7rem rgba(0, 0, 0, 0.42))
+    drop-shadow(0 0 2.1rem var(--ck-glow, rgba(111, 214, 255, 0.5)));
+}
+
+/* the date, when hidden */
+.ck-nodate .theme-night .date { display: none; }
+
+/* ---- the clock's focus ring: up from the quick buttons, OK opens the drawer ---- */
+.ckfocus {
+  display: none; position: fixed; z-index: 3; pointer-events: none; border-radius: 2.25rem;
+  background: rgba(255, 255, 255, 0.05);
+  box-shadow: inset 0 0 0 0.09rem rgba(255, 255, 255, 0.55), 0 0 2.5rem rgba(255, 255, 255, 0.18);
+  transition: opacity 160ms var(--ease);
+}
+.ckfocus.on { display: block; }
+
+/* ---- the live clock drawer: a compact frosted card, bottom-right, clear of the clock ---- */
+.ckbar {
+  display: none; position: fixed; right: 2.25rem; bottom: 2rem; z-index: 18;
+  width: 24rem; max-width: 92vw; aspect-ratio: 1 / 1; box-sizing: border-box;
+  padding: 1rem 1.05rem 0.85rem;
+  background: rgba(18, 20, 26, 0.72);
+  -webkit-backdrop-filter: blur(1.75rem) saturate(150%) brightness(0.9); backdrop-filter: blur(1.75rem) saturate(150%) brightness(0.9);
+  border: 0.0625rem solid rgba(255, 255, 255, 0.16); border-radius: 1.75rem;
+  box-shadow: 0 1.5rem 3.5rem rgba(0, 0, 0, 0.55), inset 0 0.0625rem 0 rgba(255, 255, 255, 0.2);
+  text-shadow: none; color: #fff;
+}
+.ckbar.on { display: flex; flex-direction: column; }
+.ckbar-head { flex: none; }
+.ckbar-tabs {
+  position: relative; display: grid; grid-template-columns: repeat(3, 1fr);
+  padding: 0.18rem; border-radius: 1.05rem; background: rgba(255, 255, 255, 0.07);
+}
+.ck-ind {
+  position: absolute; top: 0.18rem; bottom: 0.18rem; left: 0.18rem;
+  width: calc((100% - 0.36rem) / 3); border-radius: 0.88rem;
+  background: rgba(255, 255, 255, 0.16); box-shadow: inset 0 0 0 0.0625rem rgba(255, 255, 255, 0.2);
+  transition: transform 220ms var(--ease);
+}
+.cktab {
+  position: relative; z-index: 1; display: flex; align-items: center; justify-content: center; gap: 0.3rem;
+  height: 2rem; border-radius: 0.88rem; font-size: 0.9rem; font-weight: 600;
+  color: rgba(255, 255, 255, 0.6); transition: color 140ms var(--ease), background 140ms var(--ease);
+}
+.cktab svg { width: 1rem; height: 1rem; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.cktab.on { color: #fff; }
+.cktab.focus {
+  color: #111; background: #fff;
+  box-shadow: 0 0 0 0.09rem rgba(255, 255, 255, 0.95), 0 0.4rem 1rem rgba(0, 0, 0, 0.45);
+}
+.ckbar-rows {
+  flex: 1; display: flex; flex-direction: column; justify-content: center;
+  gap: 0.28rem; min-height: 0; margin-top: 0.7rem;
+}
+.ckrow {
+  display: flex; align-items: center; gap: 0.45rem; min-height: 2.55rem; padding: 0 0.55rem;
+  border-radius: 0.8rem; background: rgba(255, 255, 255, 0.05);
+  box-shadow: inset 0 0 0 0.0625rem rgba(255, 255, 255, 0.05);
+  transition: transform 140ms var(--ease), background 140ms var(--ease), box-shadow 140ms var(--ease);
+}
+.ckrow.focus {
+  background: rgba(255, 255, 255, 0.15); transform: scale(1.015);
+  box-shadow: inset 0 0 0 0.11rem #fff, 0 0.5rem 1.2rem rgba(0, 0, 0, 0.4);
+}
+.ckrow-ico { flex: none; display: flex; justify-content: center; width: 1.3rem; }
+.ckrow-ico svg { width: 1rem; height: 1rem; fill: none; stroke: rgba(255, 255, 255, 0.7); stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+.ckrow.focus .ckrow-ico svg { stroke: #fff; }
+.ckrow-label { flex: none; font-size: 0.85rem; font-weight: 560; color: rgba(255, 255, 255, 0.62); }
+.ckrow.focus .ckrow-label { color: rgba(255, 255, 255, 0.92); }
+.ckrow-ctl { margin-left: auto; display: flex; align-items: center; gap: 0.22rem; }
+.ckseg { display: flex; gap: 0.18rem; padding: 0.14rem; border-radius: 0.55rem; background: rgba(0, 0, 0, 0.22); }
+.ckopt {
+  display: flex; align-items: center; justify-content: center; gap: 0.22rem; min-width: 1.6rem; height: 1.55rem;
+  padding: 0 0.35rem; border-radius: 0.42rem; font-size: 0.72rem; font-weight: 600; color: rgba(255, 255, 255, 0.55);
+}
+.ckopt svg { width: 0.85rem; height: 0.85rem; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.ckopt.on { color: #fff; background: rgba(255, 255, 255, 0.18); box-shadow: inset 0 0 0 0.0625rem rgba(255, 255, 255, 0.2); }
+.ckrow.focus .ckopt.on { color: #111; background: #fff; box-shadow: none; }
+.ckdots { display: flex; gap: 0.3rem; }
+.ckdots i { width: 0.55rem; height: 0.55rem; border-radius: 50%; background: rgba(255, 255, 255, 0.25); }
+.ckdots i.on { background: #fff; box-shadow: 0 0 0.35rem rgba(255, 255, 255, 0.7); }
+.ckstep { display: flex; align-items: center; gap: 0.35rem; }
+.ckstep b { min-width: 2.6rem; text-align: center; font-size: 0.8rem; font-weight: 650; }
+.ckstep i { width: 1.45rem; height: 1.45rem; display: flex; align-items: center; justify-content: center; border-radius: 50%; background: rgba(0, 0, 0, 0.25); font-style: normal; font-size: 0.85rem; }
+.ckswitch { position: relative; width: 2.35rem; height: 1.3rem; border-radius: 0.65rem; background: rgba(0, 0, 0, 0.35); transition: background 160ms var(--ease); }
+.ckswitch i { position: absolute; top: 0.15rem; left: 0.15rem; width: 1rem; height: 1rem; border-radius: 50%; background: rgba(255, 255, 255, 0.75); transition: transform 180ms var(--ease), background 160ms var(--ease); }
+.ckswitch.on { background: #34c759; }
+.ckswitch.on i { transform: translateX(1.05rem); background: #fff; }
+.ckfonts { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 0.18rem; max-width: 12.6rem; }
+.ckfont { padding: 0.06rem 0.3rem; border-radius: 0.4rem; font-size: 0.68rem; color: rgba(255, 255, 255, 0.6); }
+.ckfont.on { color: #fff; background: rgba(255, 255, 255, 0.16); }
+.ckswatch { display: flex; gap: 0.3rem; }
+.ckswatch i { width: 1.05rem; height: 1.05rem; border-radius: 50%; border: 0.0625rem solid rgba(255, 255, 255, 0.35); }
+.ckswatch i.on { box-shadow: 0 0 0 0.11rem #fff; }
+.ckbar-foot { flex: none; display: flex; align-items: center; justify-content: space-between; margin-top: 0.6rem; }
+.ckfoot-reset { display: flex; align-items: center; justify-content: center; width: 2.1rem; height: 2.1rem; border-radius: 50%; font-size: 1.1rem; color: rgba(255, 255, 255, 0.8); background: rgba(255, 255, 255, 0.07); }
+.ckfoot-done { display: flex; align-items: center; justify-content: center; gap: 0.3rem; height: 2.1rem; padding: 0 0.95rem; border-radius: 1.05rem; font-size: 0.85rem; font-weight: 650; color: #111; background: rgba(255, 255, 255, 0.9); }
+.ckfoot-reset.focus, .ckfoot-done.focus { background: #fff; color: #111; box-shadow: inset 0 0 0 0.12rem #fff, 0 0 0 0.12rem rgba(0, 0, 0, 0.35), 0 0.5rem 1.2rem rgba(0, 0, 0, 0.45); }
+@media (prefers-reduced-motion: reduce) {
+  .cktab, .ckrow, .ck-ind, .ckswitch, .ckswitch i, .ckfocus { transition: none; }
+}
