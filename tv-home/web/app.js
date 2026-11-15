@@ -1346,7 +1346,7 @@
     else if (iconUrl(it.package)) face = '<div class="face"><img src="' + esc(iconUrl(it.package)) + '" alt="" decoding="async" onerror="this.parentNode.className=\'face word\';this.parentNode.textContent=this.getAttribute(\'data-name\')" data-name="' + esc(it.name) + '"></div>';
     else if (it.store) face = '<div class="face tool">' + ICONS.store + "</div>";
     else face = '<div class="face word">' + esc(it.name) + "</div>";
-    var cls = "tile app dock-ic" + (lift && it.package === lift.pkg ? " lifted" : "");
+    var cls = "tile app dock-ic" + (it.kind === "gear" ? " gearfloat" : "") + (lift && it.package === lift.pkg ? " lifted" : "");
     return '<div class="' + cls + '">' + face + dotHTML(it) + '<div class="label">' + esc(it.name) + "</div></div>";
   }
 
@@ -1360,7 +1360,7 @@
     else if (it.banner) face = '<div class="face"><img src="' + esc(it.banner) + '" alt="" decoding="async"></div>';
     else if (iconUrl(it.package)) face = '<div class="face icon" style="background:' + esc(it.colour || "#2a2a30") + '"><img src="' + esc(iconUrl(it.package)) + '" alt=""></div>';
     else face = '<div class="face word" style="background:' + esc(it.colour || "#2a2a30") + '">' + esc(it.name) + "</div>";
-    return '<div class="tile app">' + face + dotHTML(it) + '<div class="label">' + esc(it.name) + "</div></div>";
+    return '<div class="tile app' + (it.kind === "gear" ? " gearfloat" : "") + '">' + face + dotHTML(it) + '<div class="label">' + esc(it.name) + "</div></div>";
   }
   // The small blue dot: an app not opened yet, or (on the gear tile) a new couch-tv release.
   function dotHTML(it) {
@@ -1378,8 +1378,13 @@
       GRID_COLS = expanded ? 12 : Math.max(1, Math.min(12, gridItems.length));
       $("grid").style.gridTemplateColumns = "repeat(" + GRID_COLS + ", 7rem)";
     }
+    Array.prototype.forEach.call(document.querySelectorAll("body > .tile.gearfloat"), function (n) { n.remove(); });
     $("grid").innerHTML = gridItems.map(appHTML).join("");
     gridEls = Array.prototype.slice.call($("grid").children);
+    // the dock lives inside a transformed layer, so fixed positioning only works once the gear is
+    // lifted out to the page itself; the focus list keeps the same element reference.
+    var gearTile = $("grid").querySelector(".tile.gearfloat");
+    if (gearTile) document.body.appendChild(gearTile);
     clearIcons();
     renderHint();
   }
@@ -2699,16 +2704,15 @@
   var CK_SWATCH = [["wallpaper", "ck_sw_wallpaper", "linear-gradient(135deg,#9fc4ff,#ffc4d8 55%,#ffe0a8)"],
     ["white", "ck_sw_white", "#ffffff"], ["cyan", "ck_sw_frosted", "#6fd6ff"],
     ["amber", "ck_sw_sunset", "#f0a45c"], ["oled", "ck_sw_obsidian", "#0b0b10"]];
-  var CK_ROWS = ["fonts", "size", "swatches", "layout", "pos", "date", "weight", "depth"];
-  var CKB = { open: false, row: 0, col: 0, grab: false, foot: false, fi: 0, scroll: 0, text: 0 };
+  var CK_ROWS = ["fonts", "sliders", "swatches", "layout", "pos", "date"];
+  var CKB = { open: false, row: 0, col: 0, grab: false, foot: false, fi: 0, text: 0 };
   function ckRowLen(k) {
     if (k === "fonts") return CK_FONTS.length;
+    if (k === "sliders") return 2;
     if (k === "swatches") return CK_SWATCH.length;
     if (k === "layout") return 2;
     if (k === "pos") return CK_POS.length;
     if (k === "date") return CK_DATES.length;
-    if (k === "weight") return CK_WEIGHTS.length;
-    if (k === "depth") return 2;
     return 1;
   }
   function ckIndex(list, v) {
@@ -2739,11 +2743,15 @@
           ' style="font-family:' + CK_FACE[f[0]] + '">12</span>';
       }).join("") + "</div>";
     }
-    if (k === "size") {
-      var p = ckSizePct();
-      return '<div class="' + cls + ' ckslider' + (CKB.grab ? " grab" : "") + '">' +
-        '<span class="cklab">' + esc(t("ck_size")) + "</span>" +
-        '<span class="ckline"><i class="cktint" style="width:' + p + '%"></i><i class="ckthumb" style="left:' + p + '%"></i></span></div>';
+    if (k === "sliders") {
+      var sp = ckSizePct(), wp = (ckIndex(CK_WEIGHTS, ck("clock_weight")) / (CK_WEIGHTS.length - 1)) * 100;
+      function part(label, pct, idx) {
+        var on = focus && CKB.col === idx;
+        return '<span class="cksl' + (on ? " on" : "") + (on && CKB.grab ? " grab" : "") + '">' +
+          '<span class="ckslab">' + esc(label) + '</span><span class="ckline"><i class="cktint" style="width:' + pct +
+          '%"></i><i class="ckthumb" style="left:' + pct + '%"></i></span></span>';
+      }
+      return '<div class="' + cls + ' cksliders">' + part(t("ck_size"), sp, 0) + part(t("ck_weight"), wp, 1) + "</div>";
     }
     if (k === "swatches") {
       return '<div class="' + cls + ' ckswatchrow">' + CK_SWATCH.map(function (o, oi) {
@@ -2768,13 +2776,6 @@
         [["above", "ck_d_above"], ["below", "ck_d_below"], ["off", "ck_d_off"]], ck("clock_date"),
         CKB.col, focus) + "</div>";
     }
-    if (k === "weight") {
-      return '<div class="' + cls + '">' + ckSegHTML(t("ck_weight"),
-        CK_WEIGHTS.map(function (o) { return [o[0], o[1], o[1]]; }), ck("clock_weight"),
-        ckIndex(CK_WEIGHTS, ck("clock_weight")), focus, "ckweights") + "</div>";
-    }
-    return '<div class="' + cls + '"><span class="cklab">' + esc(t("ck_depth")) + '</span><span class="ckswitch' +
-      (ck("clock_depth") ? " on" : "") + '"><i></i></span></div>';
   }
   function renderCkbar() {
     var body = $("ck-body");
@@ -2789,17 +2790,17 @@
       o.classList.toggle("on", (o.getAttribute("data-v") === "solid") === (ck("clock_fill") === "solid"));
     });
     var list = $("ck-list"), el = list.children[CKB.row], view = body.clientHeight;
-    var y = CKB.scroll || 0, top = el.offsetTop, h = el.offsetHeight;
-    if (top < y) y = top;
-    else if (top + h > y + view) y = top + h - view;
-    y = Math.max(0, Math.min(y, list.scrollHeight - view));
-    CKB.scroll = y;
-    list.style.transform = "translateY(" + (-y) + "px)";
+    if (el) {
+      var top = el.offsetTop, h = el.offsetHeight;
+      if (top < body.scrollTop) body.scrollTop = top;
+      else if (top + h > body.scrollTop + view) body.scrollTop = top + h - view;
+    }
     $("ckbar").classList.add("on");
   }
   function openClockBar() {
     CKB.open = true; CKB.row = 0; CKB.col = ckIndex(CK_FONTS, ck("clock_font"));
-    CKB.grab = false; CKB.foot = false; CKB.fi = 0; CKB.scroll = 0;
+    CKB.grab = false; CKB.foot = false; CKB.fi = 0;
+    $("ck-body").scrollTop = 0;
     zone = "clockbar";
     clearTimeout(hintTimer); hintFlash = "";
     clearFocus();   // the dock's tile stops glowing while the popup is up
@@ -2833,12 +2834,18 @@
     var k = CK_ROWS[CKB.row];
     if (k === "fonts") CKB.col = Math.max(0, Math.min(CK_FONTS.length - 1, CKB.col + dx));
     else if (k === "swatches") CKB.col = Math.max(0, Math.min(CK_SWATCH.length - 1, CKB.col + dx));
-    else if (k === "size") {
+    else if (k === "sliders") {
       if (CKB.grab) {
-        var i = ckIndex(CK_SIZES, ck("clock_scale"));
-        i = Math.max(0, Math.min(CK_SIZES.length - 1, i + (dx > 0 ? 1 : -1)));
-        setClock("clock_scale", CK_SIZES[i][0]);
-      }
+        if (CKB.col === 0) {
+          var i = ckIndex(CK_SIZES, ck("clock_scale"));
+          i = Math.max(0, Math.min(CK_SIZES.length - 1, i + (dx > 0 ? 1 : -1)));
+          setClock("clock_scale", CK_SIZES[i][0]);
+        } else {
+          var wi = ckIndex(CK_WEIGHTS, ck("clock_weight"));
+          wi = Math.max(0, Math.min(CK_WEIGHTS.length - 1, wi + (dx > 0 ? 1 : -1)));
+          setClock("clock_weight", CK_WEIGHTS[wi][0]);
+        }
+      } else CKB.col = Math.max(0, Math.min(1, CKB.col + dx));
     } else if (k === "layout") setClock("clock_layout", ck("clock_layout") === "stack" ? "single" : "stack");
     else if (k === "pos") {
       var p = ckIndex(CK_POS, ck("clock_align") === "mid" ? "center" : ck("clock_align"));
@@ -2849,11 +2856,7 @@
       var di = ckIndex(CK_DATES, ck("clock_date"));
       di = (di + (dx > 0 ? 1 : -1) + CK_DATES.length) % CK_DATES.length;
       setClock("clock_date", CK_DATES[di][0]); CKB.col = di;
-    } else if (k === "weight") {
-      var wi = ckIndex(CK_WEIGHTS, ck("clock_weight"));
-      wi = Math.max(0, Math.min(CK_WEIGHTS.length - 1, wi + (dx > 0 ? 1 : -1)));
-      setClock("clock_weight", CK_WEIGHTS[wi][0]); CKB.col = wi;
-    } else if (k === "depth") setClock("clock_depth", !ck("clock_depth"));
+    }
     renderCkbar();
   }
   function ckActivate() {
@@ -2866,7 +2869,7 @@
     var k = CK_ROWS[CKB.row];
     if (k === "fonts") { setClock("clock_font", CK_FONTS[CKB.col][0]); return; }
     if (k === "swatches") { setClock("clock_color", CK_SWATCH[CKB.col][0]); return; }
-    if (k === "size") { CKB.grab = !CKB.grab; renderCkbar(); return; }
+    if (k === "sliders") { CKB.grab = !CKB.grab; renderCkbar(); return; }
     ckMove(1, 0);
   }
   // The same controls in Home settings, so the clock can always be changed with the remote alone.
