@@ -3,6 +3,9 @@ package app.couchtv.launcher
 import android.content.ComponentName
 import android.content.Context
 import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.graphics.Canvas
+import android.net.Uri
 import android.media.MediaMetadata
 import android.media.session.MediaSessionManager
 import android.os.Handler
@@ -42,8 +45,13 @@ class MediaWatch : NotificationListenerService() {
     }
 
     /** Media apps post and update their notification as they play; one read after the noise settles. */
-    override fun onNotificationPosted(sbn: StatusBarNotification?) = schedule()
+    override fun onNotificationPosted(sbn: StatusBarNotification?) {
+        rememberArt(sbn)
+        schedule()
+    }
     override fun onNotificationRemoved(sbn: StatusBarNotification?) = schedule()
+
+    private fun rememberArt(sbn: StatusBarNotification?) = Companion.rememberArt(sbn, this)
 
     private fun schedule() {
         main.removeCallbacks(again)
@@ -64,6 +72,10 @@ class MediaWatch : NotificationListenerService() {
         /** Past this age an entry nobody has come near the app for is not worth showing. */
         private const val STALE_MS = 14 * DAY
         private const val ART_DIR = "keep"
+
+        /** The notification's own large icon per app: YouTube and others often publish the video
+         *  still there while the media session carries no bitmap at all. */
+        private val NOTIF_ART = HashMap<String, Bitmap>()
 
         /** The picture behind one card: what shouldInterceptRequest asks for on the art route. */
         fun artFor(ctx: Context, token: String): ByteArray? {
@@ -129,6 +141,8 @@ class MediaWatch : NotificationListenerService() {
                 val bits = md.getBitmap(MediaMetadata.METADATA_KEY_ALBUM_ART)
                     ?: md.getBitmap(MediaMetadata.METADATA_KEY_ART)
                     ?: md.getBitmap(MediaMetadata.METADATA_KEY_DISPLAY_ICON)
+                    ?: artUri(ctx, md)
+                    ?: synchronized(NOTIF_ART) { NOTIF_ART[pkg] }
                 if (bits != null) keepArt(ctx, raw, bits)
                 val label = try {
                     ctx.packageManager.getApplicationLabel(ctx.packageManager.getApplicationInfo(pkg, 0)).toString()
@@ -153,6 +167,35 @@ class MediaWatch : NotificationListenerService() {
 
         private fun text(md: MediaMetadata, key: String): String? =
             md.getText(key)?.toString()?.takeIf { it.isNotBlank() }
+
+        /** Some apps publish only an art URI (a local content:// or file:// image), never a bitmap. */
+        private fun artUri(ctx: Context, md: MediaMetadata): Bitmap? {
+            val u = md.getString(MediaMetadata.METADATA_KEY_ART_URI)
+                ?: md.getString(MediaMetadata.METADATA_KEY_ALBUM_ART_URI) ?: return null
+            if (!u.startsWith("content://") && !u.startsWith("file://")) return null
+            return try {
+                ctx.contentResolver.openInputStream(Uri.parse(u))?.use { BitmapFactory.decodeStream(it) }
+            } catch (e: Exception) { null }
+        }
+
+        /** Keeps the latest notification large icon for each app, capped so memory cannot grow. */
+        private fun rememberArt(sbn: StatusBarNotification?, ctx: Context) {
+            val pkg = sbn?.packageName ?: return
+            val icon = sbn.notification?.getLargeIcon() ?: return
+            try {
+                val d = icon.loadDrawable(ctx) ?: return
+                val w = d.intrinsicWidth.coerceIn(1, 640)
+                val h = d.intrinsicHeight.coerceIn(1, 640)
+                val b = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
+                d.setBounds(0, 0, w, h)
+                d.draw(Canvas(b))
+                synchronized(NOTIF_ART) {
+                    NOTIF_ART.remove(pkg)
+                    NOTIF_ART[pkg] = b
+                    while (NOTIF_ART.size > 12) NOTIF_ART.remove(NOTIF_ART.keys.first())
+                }
+            } catch (e: Exception) {}
+        }
 
         private fun keepArt(ctx: Context, raw: String, bmp: Bitmap) {
             val f = file(ctx, raw)

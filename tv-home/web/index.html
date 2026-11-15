@@ -68,12 +68,15 @@
 <!-- hold OK on the clock, or the Clock quick button: the live clock drawer, drawn by app.js.
      A compact frosted card in the bottom-right corner, so the clock and its depth effect stay in view. -->
 <div class="ckbar" id="ckbar" role="dialog" aria-modal="false" aria-label="Clock">
-  <div class="ckbar-head">
-    <span class="ckbar-tabs" id="ckbar-tabs"></span>
+  <div class="ck-head">
+    <span class="ckico" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.6 2.5 4 5.6 4 9s-1.4 6.5-4 9c-2.6-2.5-4-5.6-4-9s1.4-6.5 4-9z"/></svg></span>
+    <span class="ck-title">Font &amp; Colour</span>
+    <span class="ckico right" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="5" y="4" width="14" height="7" rx="3"/><rect x="2.5" y="15" width="19" height="5.5" rx="2.75"/></svg></span>
   </div>
-  <div class="ckbar-rows" id="ckbar-rows"></div>
+  <div class="ck-body" id="ck-body"></div>
   <div class="ckbar-foot">
     <span class="ckfoot-reset" id="ckbar-reset" aria-label="Reset">↺</span>
+    <span class="ckfill" id="ck-fill" aria-label="Clock fill"><span class="ckopt" data-v="glass">Glass</span><span class="ckopt" data-v="solid">Solid</span></span>
     <span class="ckfoot-done" id="ckbar-done">✓ <span id="ckbar-done-text"></span></span>
   </div>
 </div>

@@ -1043,7 +1043,8 @@
         var art = it.backdrop || it.poster, pkg = it.app && it.app.package;
         var ep = it.season && it.episode ? "S" + it.season + " E" + it.episode : (it.episode_title || "");
         return '<div class="tile ncard">' +
-          (art ? '<img class="thumb" src="' + esc(art) + '" alt="" decoding="async">' : '<span class="thumb none"></span>') +
+          (art ? '<img class="thumb" src="' + esc(art) + '" alt="" decoding="async">' :
+            '<span class="thumb none">' + (pkg && iconUrl(pkg) ? '<img src="' + esc(iconUrl(pkg)) + '" alt="">' : '') + '</span>') +
           '<div class="t"><div class="nap">' + (pkg && iconUrl(pkg) ? '<img src="' + esc(iconUrl(pkg)) + '" alt="" onerror="this.remove()">' : "") +
           esc(it.app ? it.app.name : "") + "</div><b>" + esc(it.title) + "</b>" + (ep ? "<i>" + esc(ep) + "</i>" : "") +
           (it.progress ? '<span class="nbar"><i style="width:' + Math.round(it.progress * 100) + '%"></i></span>' : "") + "</div></div>";
@@ -2693,185 +2694,181 @@
     depth: '<svg viewBox="0 0 24 24"><rect x="3" y="3" width="13" height="13" rx="3"/><path d="M10 10h11v11H10z"/></svg>'
   };
   var CK_TAB_ICONS = [CKI.shape, CKI.type, CKI.colour];
-  function ckSegRow(label, icon, opts, cur, set) {
-    return { label: label, icon: icon,
-      control: function () {
-        var v = cur();
-        return '<span class="ckseg">' + opts.map(function (o) {
-          return '<span class="ckopt' + (o[0] === v ? " on" : "") + '">' + (o[2] || "") +
-            (o[2] ? "" : esc(t(o[1]))) + "</span>";
-        }).join("") + "</span>";
-      },
-      adjust: function (d) {
-        var v = cur(), i = -1;
-        for (var k = 0; k < opts.length; k++) if (opts[k][0] === v) i = k;
-        if (i < 0) i = 0;
-        else i = (i + (d > 0 ? 1 : -1) + opts.length) % opts.length;
-        set(opts[i][0]);
-      } };
-  }
-  function ckLayoutRow() {
-    return ckSegRow("ck_layout", CKI.layout,
-      [["single", "ck_l_inline", CKI.inline], ["stack", "ck_l_split", CKI.split]],
-      function () { return ck("clock_layout") === "single" ? "single" : "stack"; },
-      function (v) { setClock("clock_layout", v); });
-  }
-  function ckPosRow() {
-    return { label: "ck_align", icon: CKI.align,
-      control: function () {
-        var v = ck("clock_align");
-        return '<span class="ckdots">' + CK_POS.map(function (o) {
-          return '<i class="' + (o[0] === v ? "on" : "") + '"></i>';
-        }).join("") + "</span>";
-      },
-      adjust: function (d) {
-        var v = ck("clock_align"), i = 0;
-        for (var k = 0; k < CK_POS.length; k++) if (CK_POS[k][0] === v) i = k;
-        i = (i + (d > 0 ? 1 : -1) + CK_POS.length) % CK_POS.length;
-        setClock("clock_align", CK_POS[i][0]);
-      } };
-  }
-  function ckScaleRow() {
-    return { label: "ck_size", icon: CKI.size,
-      control: function () {
-        return '<span class="ckstep"><i>−</i><b>' + Math.round(ck("clock_scale") * 100) + '%</b><i>+</i></span>';
-      },
-      adjust: function (d) {
-        var v = ck("clock_scale"), i = 0, best = 1e9;
-        for (var k = 0; k < CK_SIZES.length; k++) {
-          var df = Math.abs(CK_SIZES[k][0] - v);
-          if (df < best) { best = df; i = k; }
-        }
-        i = Math.max(0, Math.min(CK_SIZES.length - 1, i + (d > 0 ? 1 : -1)));
-        setClock("clock_scale", CK_SIZES[i][0]);
-      } };
-  }
-  function ckDateRow() {
-    return { label: "ck_date", icon: CKI.date,
-      control: function () {
-        return '<span class="ckswitch' + (ck("clock_date") !== "off" ? " on" : "") + '"><i></i></span>';
-      },
-      adjust: function () { setClock("clock_date", ck("clock_date") === "off" ? "above" : "off"); } };
-  }
-  function ckPlaceRow() {
-    return ckSegRow("ck_date_pos", CKI.date,
-      [["above", "ck_d_above"], ["below", "ck_d_below"]],
-      function () { return ck("clock_date") === "below" ? "below" : "above"; },
-      function (v) { setClock("clock_date", v); });
-  }
-  function ckFontRow() {
-    var opts = [["inter", "ck_f_modern", "Inter"], ["antonio", "ck_f_tall", "Antonio"],
-      ["archivo", "ck_f_bold", "'Archivo Black',sans-serif"], ["nunito", "ck_f_rounded", "Nunito"],
-      ["fraunces", "ck_f_editorial", "Fraunces"]];
-    return { label: "ck_font", icon: CKI.font,
-      control: function () {
-        var v = ck("clock_font");
-        return '<span class="ckfonts">' + opts.map(function (o) {
-          return '<span class="ckfont' + (o[0] === v ? " on" : "") + '" style="font-family:' + o[2] + '">' + esc(t(o[1])) + "</span>";
-        }).join("") + "</span>";
-      },
-      adjust: function (d) {
-        var v = ck("clock_font"), i = 0;
-        for (var k = 0; k < opts.length; k++) if (opts[k][0] === v) i = k;
-        i = (i + (d > 0 ? 1 : -1) + opts.length) % opts.length;
-        setClock("clock_font", opts[i][0]);
-      } };
-  }
-  function ckWeightRow() {
-    var opts = [[300, "ck_w_light"], [500, "ck_w_regular"], [800, "ck_w_bold"]];
-    return ckSegRow("ck_weight", CKI.weight, opts,
-      function () { return ck("clock_weight"); },
-      function (v) { setClock("clock_weight", v); });
-  }
-  function ckDepthRow() {
-    return { label: "ck_depth", icon: CKI.depth,
-      control: function () { return '<span class="ckswitch' + (ck("clock_depth") ? " on" : "") + '"><i></i></span>'; },
-      adjust: function () { setClock("clock_depth", !ck("clock_depth")); } };
-  }
+  // ---- the clock card: the Font & Colour popup, with every old control kept ----
+  var CK_FACE = { antonio: "Antonio", inter: "Inter", archivo: "'Archivo Black'", nunito: "Nunito", fraunces: "Fraunces" };
   var CK_SWATCH = [["wallpaper", "ck_sw_wallpaper", "linear-gradient(135deg,#9fc4ff,#ffc4d8 55%,#ffe0a8)"],
     ["white", "ck_sw_white", "#ffffff"], ["cyan", "ck_sw_frosted", "#6fd6ff"],
     ["amber", "ck_sw_sunset", "#f0a45c"], ["oled", "ck_sw_obsidian", "#0b0b10"]];
-  function ckSwatchRow() {
-    return { label: "ck_colour", icon: CKI.colour,
-      control: function () {
-        var v = ck("clock_color");
-        return '<span class="ckswatch">' + CK_SWATCH.map(function (o) {
-          return '<i class="' + (o[0] === v ? "on" : "") + '" style="background:' + o[2] + '"></i>';
-        }).join("") + "</span>";
-      },
-      adjust: function (d) {
-        var v = ck("clock_color"), i = 0;
-        for (var k = 0; k < CK_SWATCH.length; k++) if (CK_SWATCH[k][0] === v) i = k;
-        i = (i + (d > 0 ? 1 : -1) + CK_SWATCH.length) % CK_SWATCH.length;
-        setClock("clock_color", CK_SWATCH[i][0]);
-      } };
+  var CK_ROWS = ["fonts", "size", "swatches", "layout", "pos", "date", "weight", "depth"];
+  var CKB = { open: false, row: 0, col: 0, grab: false, foot: false, fi: 0, scroll: 0, text: 0 };
+  function ckRowLen(k) {
+    if (k === "fonts") return CK_FONTS.length;
+    if (k === "swatches") return CK_SWATCH.length;
+    if (k === "layout") return 2;
+    if (k === "pos") return CK_POS.length;
+    if (k === "date") return CK_DATES.length;
+    if (k === "weight") return CK_WEIGHTS.length;
+    if (k === "depth") return 2;
+    return 1;
   }
-  function ckRows(tab) {
-    if (tab === 0) return [ckLayoutRow(), ckPosRow(), ckScaleRow(), ckDateRow(), ckPlaceRow()];
-    if (tab === 1) return [ckFontRow(), ckWeightRow()];
-    return [ckDepthRow(), ckSwatchRow()];
+  function ckIndex(list, v) {
+    for (var i = 0; i < list.length; i++) if (String(list[i][0]) === String(v)) return i;
+    return 0;
   }
-  var CKB = { open: false, tab: 0, row: 0, onTabs: false, foot: false, fi: 0 };
+  function ckSizePct() {
+    var v = ck("clock_scale"), i = 0, best = 9;
+    for (var k = 0; k < CK_SIZES.length; k++) {
+      var d = Math.abs(CK_SIZES[k][0] - v);
+      if (d < best) { best = d; i = k; }
+    }
+    return (i / (CK_SIZES.length - 1)) * 100;
+  }
+  function ckSegHTML(label, opts, cur, col, focus, cls) {
+    return '<span class="cklab">' + esc(label) + '</span><span class="ckopts ' + (cls || "") + '">' +
+      opts.map(function (o, i) {
+        return '<span class="ckopt' + (String(o[0]) === String(cur) ? " on" : "") +
+          (focus && i === col ? " sel" : "") + '">' + esc(o[2] || t(o[1])) + "</span>";
+      }).join("") + "</span>";
+  }
+  function ckRowHTML(k, i) {
+    var focus = !CKB.foot && CKB.row === i;
+    var cls = "ckrow2" + (focus ? " focus" : "");
+    if (k === "fonts") {
+      return '<div class="' + cls + ' ckfonts">' + CK_FONTS.map(function (f, fi) {
+        return '<span class="ckf' + (ck("clock_font") === f[0] ? " on" : "") + (focus && CKB.col === fi ? " sel" : "") + '"' +
+          ' style="font-family:' + CK_FACE[f[0]] + '">12</span>';
+      }).join("") + "</div>";
+    }
+    if (k === "size") {
+      var p = ckSizePct();
+      return '<div class="' + cls + ' ckslider' + (CKB.grab ? " grab" : "") + '">' +
+        '<span class="cklab">' + esc(t("ck_size")) + "</span>" +
+        '<span class="ckline"><i class="cktint" style="width:' + p + '%"></i><i class="ckthumb" style="left:' + p + '%"></i></span></div>';
+    }
+    if (k === "swatches") {
+      return '<div class="' + cls + ' ckswatchrow">' + CK_SWATCH.map(function (o, oi) {
+        return '<span class="cksw' + (ck("clock_color") === o[0] ? " on" : "") + (focus && CKB.col === oi ? " sel" : "") +
+          '" style="background:' + o[2] + '"></span>';
+      }).join("") + "</div>";
+    }
+    if (k === "layout") {
+      return '<div class="' + cls + '">' + ckSegHTML(t("ck_layout"),
+        [["single", "ck_l_inline"], ["stack", "ck_l_split"]], ck("clock_layout") === "stack" ? "stack" : "single",
+        CKB.col, focus) + "</div>";
+    }
+    if (k === "pos") {
+      var v = ck("clock_align") === "mid" ? "center" : ck("clock_align");
+      var pi = ckIndex(CK_POS, v);
+      return '<div class="' + cls + '"><span class="cklab">' + esc(t("ck_align")) + '</span><span class="ckdots">' +
+        CK_POS.map(function (o, oi) { return '<i class="' + (oi === pi ? "on" : "") + (focus && CKB.col === oi ? " sel" : "") + '"></i>'; }).join("") +
+        "</span></div>";
+    }
+    if (k === "date") {
+      return '<div class="' + cls + '">' + ckSegHTML(t("ck_date"),
+        [["above", "ck_d_above"], ["below", "ck_d_below"], ["off", "ck_d_off"]], ck("clock_date"),
+        CKB.col, focus) + "</div>";
+    }
+    if (k === "weight") {
+      return '<div class="' + cls + '">' + ckSegHTML(t("ck_weight"),
+        CK_WEIGHTS.map(function (o) { return [o[0], o[1], o[1]]; }), ck("clock_weight"),
+        ckIndex(CK_WEIGHTS, ck("clock_weight")), focus, "ckweights") + "</div>";
+    }
+    return '<div class="' + cls + '"><span class="cklab">' + esc(t("ck_depth")) + '</span><span class="ckswitch' +
+      (ck("clock_depth") ? " on" : "") + '"><i></i></span></div>';
+  }
   function renderCkbar() {
-    var rows = ckRows(CKB.tab);
-    $("ckbar-tabs").innerHTML = '<span class="ck-ind" style="transform:translateX(' + (CKB.tab * 100) + '%)"></span>' +
-      CK_TABS.map(function (k, i) {
-        return '<span class="cktab' + (CKB.tab === i ? " on" : "") + (CKB.onTabs && CKB.tab === i ? " focus" : "") + '">' +
-          CK_TAB_ICONS[i] + "<span>" + esc(t(k)) + "</span></span>";
-      }).join("");
-    $("ckbar-rows").innerHTML = rows.map(function (r, i) {
-      return '<div class="ckrow' + (!CKB.onTabs && !CKB.foot && CKB.row === i ? " focus" : "") + '">' +
-        '<span class="ckrow-ico">' + r.icon + '</span>' +
-        '<span class="ckrow-label">' + esc(t(r.label)) + '</span>' +
-        '<span class="ckrow-ctl">' + r.control() + "</span></div>";
-    }).join("");
+    var body = $("ck-body");
+    if (!body) return;
+    body.innerHTML = '<div class="ck-list" id="ck-list">' + CK_ROWS.map(ckRowHTML).join("") + "</div>";
     $("ckbar-reset").className = "ckfoot-reset" + (CKB.foot && CKB.fi === 0 ? " focus" : "");
-    $("ckbar-done").className = "ckfoot-done" + (CKB.foot && CKB.fi === 1 ? " focus" : "");
+    $("ckbar-done").className = "ckfoot-done" + (CKB.foot && CKB.fi === 2 ? " focus" : "");
     $("ckbar-done-text").textContent = t("ck_done");
+    var fill = $("ck-fill");
+    fill.className = "ckfill" + (CKB.foot && CKB.fi === 1 ? " focus" : "");
+    fill.querySelectorAll(".ckopt").forEach(function (o) {
+      o.classList.toggle("on", (o.getAttribute("data-v") === "solid") === (ck("clock_fill") === "solid"));
+    });
+    var list = $("ck-list"), el = list.children[CKB.row], view = body.clientHeight;
+    var y = CKB.scroll || 0, top = el.offsetTop, h = el.offsetHeight;
+    if (top < y) y = top;
+    else if (top + h > y + view) y = top + h - view;
+    y = Math.max(0, Math.min(y, list.scrollHeight - view));
+    CKB.scroll = y;
+    list.style.transform = "translateY(" + (-y) + "px)";
     $("ckbar").classList.add("on");
   }
   function openClockBar() {
-    CKB.open = true; CKB.tab = 0; CKB.row = 0; CKB.onTabs = false; CKB.foot = false; CKB.fi = 0;
+    CKB.open = true; CKB.row = 0; CKB.col = ckIndex(CK_FONTS, ck("clock_font"));
+    CKB.grab = false; CKB.foot = false; CKB.fi = 0; CKB.scroll = 0;
     zone = "clockbar";
     clearTimeout(hintTimer); hintFlash = "";
-    clearFocus();   // the dock's tile stops glowing while the drawer is up
+    clearFocus();   // the dock's tile stops glowing while the popup is up
     renderCkbar();
     positionClockFocus(false);
     renderHint();
   }
   function closeClockBar() {
-    CKB.open = false; CKB.foot = false;
+    CKB.open = false; CKB.foot = false; CKB.grab = false;
     $("ckbar").classList.remove("on");
     zone = "clock";
     paintFocus();
   }
   function ckMove(dx, dy) {
-    var rows = ckRows(CKB.tab);
-    if (CKB.onTabs) {
-      if (dx) { CKB.tab = (CKB.tab + dx + CK_TABS.length) % CK_TABS.length; CKB.row = 0; }
-      else if (dy > 0) CKB.onTabs = false;
-    } else if (CKB.foot) {
-      if (dx) CKB.fi = (CKB.fi + (dx > 0 ? 1 : -1) + 2) % 2;
-      else if (dy < 0) { CKB.foot = false; CKB.row = rows.length - 1; }
-    } else if (dy < 0 && CKB.row === 0) {
-      CKB.onTabs = true;
-    } else if (dy > 0 && CKB.row === rows.length - 1) {
-      CKB.foot = true; CKB.fi = 0;
-    } else if (dy) {
-      CKB.row = Math.max(0, Math.min(rows.length - 1, CKB.row + dy));
-    } else if (dx) {
-      rows[CKB.row].adjust(dx);
+    if (CKB.foot) {
+      if (dy < 0) { CKB.foot = false; CKB.row = CK_ROWS.length - 1; CKB.col = 0; }
+      else if (dx) {
+        CKB.fi = (CKB.fi + (dx > 0 ? 1 : -1) + 3) % 3;
+        if (CKB.fi === 1) setClock("clock_fill", ck("clock_fill") === "solid" ? "glass" : "solid");
+        renderCkbar(); return;
+      }
+      renderCkbar(); return;
     }
+    if (dy > 0 && CKB.row === CK_ROWS.length - 1) { CKB.foot = true; CKB.fi = 0; CKB.grab = false; renderCkbar(); return; }
+    if (dy) {
+      CKB.row = Math.max(0, Math.min(CK_ROWS.length - 1, CKB.row + dy));
+      CKB.grab = false;
+      CKB.col = Math.min(CKB.col, ckRowLen(CK_ROWS[CKB.row]) - 1);
+      renderCkbar(); return;
+    }
+    if (!dx) return;
+    var k = CK_ROWS[CKB.row];
+    if (k === "fonts") CKB.col = Math.max(0, Math.min(CK_FONTS.length - 1, CKB.col + dx));
+    else if (k === "swatches") CKB.col = Math.max(0, Math.min(CK_SWATCH.length - 1, CKB.col + dx));
+    else if (k === "size") {
+      if (CKB.grab) {
+        var i = ckIndex(CK_SIZES, ck("clock_scale"));
+        i = Math.max(0, Math.min(CK_SIZES.length - 1, i + (dx > 0 ? 1 : -1)));
+        setClock("clock_scale", CK_SIZES[i][0]);
+      }
+    } else if (k === "layout") setClock("clock_layout", ck("clock_layout") === "stack" ? "single" : "stack");
+    else if (k === "pos") {
+      var p = ckIndex(CK_POS, ck("clock_align") === "mid" ? "center" : ck("clock_align"));
+      p = (p + (dx > 0 ? 1 : -1) + CK_POS.length) % CK_POS.length;
+      setClock("clock_align", CK_POS[p][0]);
+      CKB.col = p;
+    } else if (k === "date") {
+      var di = ckIndex(CK_DATES, ck("clock_date"));
+      di = (di + (dx > 0 ? 1 : -1) + CK_DATES.length) % CK_DATES.length;
+      setClock("clock_date", CK_DATES[di][0]); CKB.col = di;
+    } else if (k === "weight") {
+      var wi = ckIndex(CK_WEIGHTS, ck("clock_weight"));
+      wi = Math.max(0, Math.min(CK_WEIGHTS.length - 1, wi + (dx > 0 ? 1 : -1)));
+      setClock("clock_weight", CK_WEIGHTS[wi][0]); CKB.col = wi;
+    } else if (k === "depth") setClock("clock_depth", !ck("clock_depth"));
     renderCkbar();
   }
   function ckActivate() {
-    if (CKB.onTabs) { CKB.onTabs = false; CKB.row = 0; renderCkbar(); return; }
     if (CKB.foot) {
-      if (CKB.fi === 0) resetClock(); else closeClockBar();
+      if (CKB.fi === 0) resetClock();
+      else if (CKB.fi === 1) setClock("clock_fill", ck("clock_fill") === "solid" ? "glass" : "solid");
+      else closeClockBar();
       return;
     }
-    var rows = ckRows(CKB.tab);
-    if (rows[CKB.row]) rows[CKB.row].adjust(1);
+    var k = CK_ROWS[CKB.row];
+    if (k === "fonts") { setClock("clock_font", CK_FONTS[CKB.col][0]); return; }
+    if (k === "swatches") { setClock("clock_color", CK_SWATCH[CKB.col][0]); return; }
+    if (k === "size") { CKB.grab = !CKB.grab; renderCkbar(); return; }
+    ckMove(1, 0);
   }
   // The same controls in Home settings, so the clock can always be changed with the remote alone.
   function clockRows() {
