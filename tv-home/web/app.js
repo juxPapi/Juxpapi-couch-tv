@@ -2817,8 +2817,7 @@
     if (CKB.foot) {
       if (dy < 0) { CKB.foot = false; CKB.row = CK_ROWS.length - 1; CKB.col = 0; }
       else if (dx) {
-        CKB.fi = (CKB.fi + (dx > 0 ? 1 : -1) + 3) % 3;
-        if (CKB.fi === 1) setClock("clock_fill", ck("clock_fill") === "solid" ? "glass" : "solid");
+        CKB.fi = Math.max(0, Math.min(2, CKB.fi + (dx > 0 ? 1 : -1)));
         renderCkbar(); return;
       }
       renderCkbar(); return;
