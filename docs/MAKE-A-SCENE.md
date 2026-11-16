@@ -130,7 +130,7 @@ Change the numbers in the address until it looks right, then copy them into `con
 ## 5. Put it on the TV
 
 Your scenes take turns after the built-in ones. To choose the order, or leave some built-in ones
-out, list ids in `home.scenes`, for example `"scenes": ["beach", "night", "fog"]`. Home settings,
+out, list ids in `home.scenes`, for example `"scenes": ["golden", "beach"]`. Home settings,
 Look and scenes, can also switch any of them off or move them, like the built-in ones.
 
 **Option B (computer bridge).** The bridge serves `tv-home/web` straight from the repo, so the new

@@ -149,7 +149,7 @@ Home settings saves to the same `bridge/data/people.json` the phone uses.
 ```json
 "home": {
   "look": "night",
-  "scenes": ["night", "golden", "water", "fog", "dawn"],
+  "scenes": ["golden"],
   "scene_seconds": 20,
   "clock": "12h",
   "dock_size": 10,
@@ -346,7 +346,7 @@ already made on the TV.
 Serve the repo folder with any static server and open the home with `?mock=1`, for example
 `python3 -m http.server 8000`, then `http://127.0.0.1:8000/tv-home/web/index.html?mock=1`.
 `tv-home/web/mock.js` lists the preview settings: `people=4`, `quick=sleep,look,input`,
-`picture=1`, `look=classic`, `clock=24h`, `lang=it`, `dock=6`, `scenes=fog,dawn`, `secs=8`,
+`picture=1`, `look=classic`, `clock=24h`, `lang=it`, `dock=6`, `scenes=golden`, `secs=8`,
 `newapp=1`, `offline=1`, `down`, `ha=1` (smart home with a pretend Home Assistant; `ha=down` when
 it is not answering, `ha=scenes` for scenes only), `update=1` (Home settings, Updates, with a pretend
 0.4 waiting; `update=latest` and `update=allow` for the other cases), and `reset=1` to forget what a

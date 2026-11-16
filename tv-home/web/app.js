@@ -44,35 +44,39 @@
   // Home settings made on this TV with the gear tile (see "home settings" below). They win over
   // config.js. ST is the saved object; the rest are read from it in readConfig().
   var ST = {}, WX_SHOW = true, WX_F = false, WX_EVERY = 30, HIDDEN_TV = [];
+  // Weather effects (ambient-weather.js): rain, snow, fog and lightning over the scene, on unless
+  // switched off; sunlight colour grading, off unless switched on (Home settings, Weather).
+  var WX_AMBIENT = true, WX_SUN_GRADE = false;
   // The clock customiser (Home settings, Clock; the live drawer): what the digits look like, from
   // Home settings on this TV. Kept in ST with everything else, so it saves to localStorage at once
   // and survives a restart; ?mock=1 previews it on a computer. See applyClock() below.
   var CK_DEF = {
     clock_layout: "single", clock_font: "antonio", clock_weight: 300, clock_scale: 1,
     clock_align: "scene", clock_fill: "glass", clock_color: "wallpaper",
-    clock_depth: false, clock_two: false, clock_outline: false, clock_date: "above"
+    clock_shadow: false, clock_date: "above"
   };
   var CK_FONTS = [["antonio", "ck_f_antonio"], ["inter", "ck_f_inter"], ["archivo", "ck_f_archivo"],
     ["nunito", "ck_f_nunito"], ["fraunces", "ck_f_fraunces"]];
   var CK_LAYOUTS = [["single", "ck_l_single"], ["stack", "ck_l_stack"], ["offset", "ck_l_offset"], ["tight", "ck_l_tight"]];
   var CK_ALIGNS = [["scene", "ck_a_scene"], ["left", "ck_a_left"], ["center", "ck_a_center"], ["right", "ck_a_right"], ["mid", "ck_a_mid"]];
-  var CK_POS = [["left", "ck_a_left"], ["center", "ck_a_center"], ["right", "ck_a_right"]];
   var CK_FILLS = [["glass", "ck_fill_glass"], ["adaptive", "ck_fill_adaptive"], ["solid", "ck_fill_solid"], ["outline", "ck_fill_outline"]];
   var CK_SIZES = [[0.8, "ck_sz_80"], [0.9, "ck_sz_90"], [1, "ck_sz_100"], [1.1, "ck_sz_110"], [1.2, "ck_sz_120"], [1.3, "ck_sz_130"], [1.4, "ck_sz_140"]];
   var CK_WEIGHTS = [[300, "300"], [400, "400"], [500, "500"], [600, "600"], [700, "700"], [800, "800"], [900, "900"]];
-  var CK_DATES = [["above", "ck_d_above"], ["below", "ck_d_below"], ["off", "ck_d_off"]];
+  var CK_DATES = [["above", "ck_d_above"], ["below", "ck_d_below"], ["off", "ck_d_off"], ["fixed", "ck_d_fixed"]];
   // the face and its real weight, so document.fonts.load() finds it before the glass is measured
   var CK_LOAD = { antonio: [300, "Antonio"], inter: [450, "Inter"], archivo: [400, "Archivo Black"],
     nunito: [800, "Nunito"], fraunces: [600, "Fraunces"] };
   var CK_COLOURS = [["wallpaper", "ck_c_wallpaper", null], ["white", "ck_c_white", "#ffffff"], ["oled", "ck_c_oled", "#0b0b10"],
     ["cyan", "ck_c_cyan", "#6fd6ff"], ["amber", "ck_c_amber", "#ffbf5e"], ["coral", "ck_c_coral", "#ff7a6e"],
     ["violet", "ck_c_violet", "#b79bff"], ["mint", "ck_c_mint", "#62e6b0"], ["rose", "ck_c_rose", "#ff8fc7"],
-    ["lime", "ck_c_lime", "#d3f56b"]];
+    ["lime", "ck_c_lime", "#d3f56b"], ["sky", "ck_c_sky", "#7fb2ff"], ["peach", "ck_c_peach", "#ffc9a3"],
+    ["lavender", "ck_c_lavender", "#cbb8ff"], ["gold", "ck_c_gold", "#ffd76a"], ["teal", "ck_c_teal", "#5ee0d0"],
+    ["ruby", "ck_c_ruby", "#ff5f7e"], ["silver", "ck_c_silver", "#d8dde6"], ["sand", "ck_c_sand", "#e8d3ae"]];
   var CK_TABS = ["ck_tab_shape", "ck_tab_type", "ck_tab_colour"];
   // a tint for each of your own scenes, so "wallpaper colour" follows the photo on screen
   var CK_SCENE_TINTS = ["#ffd479", "#8fe6ff", "#ffb38a", "#c8b6ff", "#9df0c8", "#ffc2df", "#b9d4ff", "#e9f79a"];
-  // Now playing (#31), on unless switched off; the navigation sound: system, soft or off (#32)
-  var NP_ON = true, SOUND_STYLE = "system";
+  // Now playing (#31), on unless switched off; Keep watching, on unless switched off
+  var NP_ON = true, KW_ON = true, SOUND_STYLE = "system";
   // glass app icons: the focused app in its own colours, or staying glass (#32)
   var GLASS_FOCUS = "colour";
   // WebViews before Chrome 84 (still on many Android 9 TVs) skip gap in a flex box, so icons touch
@@ -140,6 +144,7 @@
     more: '<svg viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.2"/><circle cx="12" cy="12" r="1.2"/><circle cx="19" cy="12" r="1.2"/></svg>',
     gear: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>',
     look: '<svg viewBox="0 0 24 24"><rect x="2.5" y="4.5" width="19" height="15" rx="3"/><path d="M2.5 16l5.5-5.5 4.5 4.5 3-3 6 6"/><circle cx="16.5" cy="8.8" r="1.6"/></svg>',
+    eye: '<svg viewBox="0 0 24 24"><path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6z"/><circle cx="12" cy="12" r="2.8"/></svg>',
     input: '<svg viewBox="0 0 24 24"><rect x="2.5" y="4" width="19" height="13" rx="2.5"/><path d="M8 21h8M12 7.5v6M9.5 11l2.5 2.5 2.5-2.5"/></svg>',
     screensaver: '<svg viewBox="0 0 24 24"><rect x="2.5" y="4" width="19" height="14" rx="2.5"/><path d="M15.2 7.3a3.4 3.4 0 1 0 2.1 5 3.9 3.9 0 0 1-2.1-5z"/></svg>',
     bluetooth: '<svg viewBox="0 0 24 24"><path d="M6.5 7.5l11 9-5.5 4.5v-18l5.5 4.5-11 9"/></svg>',
@@ -207,6 +212,8 @@
     WX_SHOW = ST.wx_show !== false;
     WX_F = ST.wx_unit === "f";
     WX_EVERY = [15, 30, 60].indexOf(ST.wx_every) >= 0 ? ST.wx_every : 30;
+    WX_AMBIENT = typeof ST.ambient_weather === "boolean" ? ST.ambient_weather : HOME.ambient_weather !== false;
+    WX_SUN_GRADE = typeof ST.ambient_sun_grade === "boolean" ? ST.ambient_sun_grade : HOME.ambient_sun_grade === true;
     var mine = TV_ID || CFG.default_tv;
     TVCFG = (CFG.tvs || []).filter(function (t) { return t.id === mine; })[0] || (CFG.tvs || [])[0] || {};
     // The clock button is new: put it at the front of a quick list saved before it existed, once,
@@ -214,6 +221,17 @@
     if (Array.isArray(ST.quick) && !ST.ck_quick && ST.quick.indexOf("clock") < 0) {
       ST.quick = ["clock"].concat(ST.quick);
       ST.ck_quick = true;
+      saveSettings();
+    }
+    // Bluetooth and Wi-Fi are separate quick buttons now: split the older combined one, once.
+    if (Array.isArray(ST.quick) && ST.quick.indexOf("connections") >= 0 && !ST.quick_split) {
+      var splitQ = [];
+      ST.quick.forEach(function (q) {
+        if (q === "connections") splitQ.push("bluetooth", "network");
+        else splitQ.push(q);
+      });
+      ST.quick = splitQ;
+      ST.quick_split = true;
       saveSettings();
     }
     // no "quick" from an older bridge: the sleep timer, and the picture switch where the TV has one
@@ -228,6 +246,7 @@
     // glass app icons (#25): set in Home settings, else home.glass_icons; off unless switched on
     GLASS_ICONS = typeof ST.glass_icons === "boolean" ? ST.glass_icons : HOME.glass_icons === true;
     NP_ON = typeof ST.now_playing === "boolean" ? ST.now_playing : HOME.now_playing !== false;
+    KW_ON = typeof ST.keep_watching === "boolean" ? ST.keep_watching : HOME.keep_watching !== false;
     GLASS_FOCUS = (ST.glass_focus || HOME.glass_focus) === "glass" ? "glass" : "colour";
     document.documentElement.classList.toggle("gi-stay", GLASS_FOCUS === "glass");
     SOUND_STYLE = ["system", "soft", "off"].indexOf(ST.nav_sound || HOME.nav_sound) >= 0 ? (ST.nav_sound || HOME.nav_sound) : "system";
@@ -412,7 +431,7 @@
       '<span class="ww"> ' + esc(wxText(w)) + "</span></span>" : "") + "</span>";
     fitDate();
     document.body.classList.toggle("night", h >= 21 || h < 6);
-    if (NIGHT) glassClock(hm);
+    if (NIGHT) { glassClock(hm); updateAmbientWeather(); }
     if (quickReady) renderQuick();
   }
 
@@ -434,8 +453,7 @@
     // Your own scenes are not listed here: tools/make-scene.py makes them and home.my_scenes in
     // config.json names them (myScenes() below, docs/MAKE-A-SCENE.md).
     // Each scene's clock and date positions are in app.css (.s-<id>, .scene-<id> .date).
-    { id: "golden", photo: "scene-golden", fg: true, glass: true },
-    { id: "fog", photo: "scene-fog", fg: true, glass: true }
+    { id: "golden", photo: "scene-golden", fg: true, glass: true }
   ];
   var BUILT_IN = SCENE_LIB.slice();   // readConfig() adds your own scenes to SCENE_LIB
   var SCENES = SCENE_LIB.slice(), SCENE_MS = 20000;
@@ -470,6 +488,10 @@
     return out;
   }
   function sceneClass(s) { return s.own ? "own" : s.mine ? "mine" : s.id; }
+  function sceneLabel(s) {
+    if (!s) return "";
+    return s.own ? t("scene_photo", { n: s.n }) : s.mine ? (s.name || t("scene_mine", { n: s.n })) : t("scene_" + s.id);
+  }
 
   // The household's own photos (Home settings, "Your photos") are scenes too, with no cut-out and
   // no glass copy: the clock's fill is the photo itself, frosted in app.css (.s-own).
@@ -642,8 +664,14 @@
     v.removeAttribute("src");
     try { v.load(); } catch (e) {}
   }
-  function pauseVideo() { var v = $("bgvid"); if (v.getAttribute("src")) v.pause(); }
-  document.addEventListener("visibilitychange", function () { if (document.hidden) pauseVideo(); else startVideo(); });
+  function pauseVideo() {
+    if (window.AmbientWeather) window.AmbientWeather.pause();
+    var v = $("bgvid"); if (v.getAttribute("src")) v.pause();
+  }
+  document.addEventListener("visibilitychange", function () {
+    if (document.hidden) pauseVideo();
+    else { startVideo(); if (window.AmbientWeather) window.AmbientWeather.resume(); }
+  });
 
   function showScene(i) {
     var prev = scene;
@@ -663,6 +691,8 @@
       fitDate();
     }, 600);
     sceneEls[i].classList.add("on");
+    // this scene's own clock look takes over as it fades in (Home settings and the drawer save per scene)
+    applyClock();
     if (prev !== i) sceneEls[prev].classList.remove("on");
     // after the fade, stop drawing the old one and get the next one ready
     setTimeout(function () {
@@ -675,32 +705,62 @@
   // Night: the date line sits centred above the clock, beside the quick buttons. Longer words
   // (Spanish, a running sleep timer, four buttons) can reach them, so it makes
   // room: first it centres in the space left, then drops the weather's words, then the weather.
+  // The date and its weather sit on the clock, wherever the digits are. The old rules reset the
+  // left/right here after placing it, which is why a fixed date could stay at the top left.
   function fitDate() {
-    var d = $("date"), line = d.firstChild;
-    if (!NIGHT || !line || !line.getBoundingClientRect) return;
-    placeDate();   // the date follows the digits, whatever the scene or clock setting
-    d.style.left = ""; d.style.right = "";
-    d.classList.remove("tight", "tighter");
-    var b = line.getBoundingClientRect(), rem = innerWidth / 120;
-    var near = function (r) { return r && r.width > 0 && r.bottom > b.top && r.top < b.bottom; };
-    var q = $("quick").classList.contains("none") ? null : $("qbtns").getBoundingClientRect();
-    var hitQ = near(q) && b.right > q.left - rem;
-    if (!hitQ) return;
-    d.style.right = (innerWidth - q.left + 1.5 * rem) + "px";
-    if (d.scrollWidth > d.clientWidth + 1) d.classList.add("tight");
-    if (d.scrollWidth > d.clientWidth + 1) d.classList.add("tighter");
+    if (!NIGHT) return;
+    placeDate();
   }
 
   // the settings screen covers the scenes, so they wait (one less thing for a small TV stick to draw)
   // while the clock is being adjusted the scene stays put, so the digits do not move under the drawer
   function nextScene() { if (zone !== "settings" && zone !== "clock" && zone !== "clockbar") showScene(nextFrom(scene)); }
 
+  // Sun-synchronized day/night calculation (astronomical solar altitude from lat, lon and time)
+  function solarAltitude(lat, lon, d) {
+    d = d || new Date();
+    var start = new Date(Date.UTC(d.getUTCFullYear(), 0, 0));
+    var dayOfYear = Math.floor((d - start) / 86400000);
+    var b = (360 / 365.25) * (dayOfYear - 81) * (Math.PI / 180);
+    var eot = 9.87 * Math.sin(2 * b) - 7.53 * Math.cos(b) - 1.5 * Math.sin(b);
+    var decl = 23.45 * Math.sin(b) * (Math.PI / 180);
+    var utcHours = d.getUTCHours() + d.getUTCMinutes() / 60 + d.getUTCSeconds() / 3600;
+    var solarTime = (utcHours + (lon / 15) + (eot / 60) + 24) % 24;
+    var hourAngle = (solarTime - 12) * 15 * (Math.PI / 180);
+    var latRad = lat * (Math.PI / 180);
+    var sinAlt = Math.sin(latRad) * Math.sin(decl) + Math.cos(latRad) * Math.cos(decl) * Math.cos(hourAngle);
+    var alt = Math.asin(Math.max(-1, Math.min(1, sinAlt))) * (180 / Math.PI);
+    return { alt: alt, hourAngle: hourAngle * (180 / Math.PI) };
+  }
+  function getSunPos() {
+    if (WXCFG && WXCFG.lat != null && isFinite(WXCFG.lat) && WXCFG.lon != null && isFinite(WXCFG.lon)) {
+      return solarAltitude(Number(WXCFG.lat), Number(WXCFG.lon), new Date());
+    }
+    var h = new Date().getHours();
+    return { alt: (h >= 6 && h < 18) ? 35 : -20, hourAngle: (h - 12) * 15 };
+  }
+  // The ambient weather effects follow the settings: off unless chosen, and not while the
+  // weather itself is hidden.
+  function ambientSync() {
+    var a = window.AmbientWeather;
+    if (!a) return;
+    a.setEnabled(WX_AMBIENT && WX_SHOW && NIGHT);
+    a.setSunGradeEnabled(WX_SUN_GRADE && NIGHT);
+    updateAmbientWeather();
+  }
+  function updateAmbientWeather() {
+    if (!window.AmbientWeather) return;
+    window.AmbientWeather.setWeather(WX_SHOW ? data.weather : null, getSunPos());
+  }
+
   // The bridge's reading for the place in config.json, or straight from Open-Meteo with no bridge
   // or when Home settings chose another place. Hidden when Home settings switched the weather off.
   function refreshWeather() {
-    if (!NIGHT || !WX_SHOW) return Promise.resolve();
+    if (!NIGHT || !WX_SHOW) { updateAmbientWeather(); return Promise.resolve(); }
     var direct = OFFLINE || !!(ST.place && isFinite(ST.place.lat));
-    return (direct ? weatherDirect() : api("GET", "/api/weather")).then(function (j) { data.weather = j; clock(); }, function () {});
+    return (direct ? weatherDirect() : api("GET", "/api/weather")).then(function (j) {
+      data.weather = j; clock(); updateAmbientWeather();
+    }, function () {});
   }
 
   // Open-Meteo (free, no key), the same call the bridge makes. The words come from i18n.js.
@@ -739,8 +799,9 @@
     var el = $("np"), on = npVisible();
     el.classList.toggle("on", on);
     if (NIGHT) {
-      // the row shows while there is a show on the go, or while a song plays
-      $("shelf-section").classList.toggle("empty", !data.shows.length && !on);
+      // the row shows while Keep watching is on and has a show, or while a song plays
+      $("shelf-section").classList.toggle("kw-off", !KW_ON);
+      $("shelf-section").classList.toggle("empty", !(KW_ON && data.shows.length) && !on);
       $("np-slot").classList.toggle("on", on);
     }
     if (!on) { el.innerHTML = ""; return; }
@@ -807,7 +868,7 @@
       if (q === "picture") return !OFFLINE && picShown;
       if (q === "input") return !OFFLINE || nativeInputs();
       if (q === "screensaver") return nativeScreensaver();
-      if (q === "bluetooth" || q === "network") return ON_TV && !OFFLINE;
+      if (q === "bluetooth" || q === "network") return nativeSettings() || (ON_TV && !OFFLINE);
       if (q === "connections") return nativeSettings() || (ON_TV && !OFFLINE);
       if (q === "clock") return true;   // the clock customiser always works, with or without a bridge
       return false;
@@ -824,6 +885,8 @@
   }
   function renderQuick() {
     quickReady = true;
+    var gq = $("qgear");
+    if (gq && !gq.innerHTML) gq.innerHTML = ICONS.gear;
     var box = $("qbtns"), vis = quickVisible(), key = vis.join(",");
     if (box.getAttribute("data-k") !== key) {
       box.innerHTML = vis.map(function (q) { return '<span class="qbtn" id="q-' + q + '"></span>'; }).join("");
@@ -996,7 +1059,12 @@
     else if (q === "picture") togglePicture();
     else if (q === "input") openInputs();
     else if (q === "screensaver") startScreensaver();
-    else if (q === "bluetooth" || q === "network") openSettingsScreen(q);
+    else if (q === "bluetooth" || q === "network") {
+      // the on-TV app opens the TV's own page; the bridge asks the TV to open it
+      var done = false;
+      try { done = !!(TV && TV.openSettingsScreen && TV.openSettingsScreen(q)); } catch (e) {}
+      if (!done) openSettingsScreen(q);
+    }
     else if (q === "connections") openConnections();
     else if (q === "clock") openClockBar();
   }
@@ -1030,8 +1098,15 @@
   function renderShelf() {
     var track = $("shelf");
     data.shows = (data.shows || []).slice(0, KEEP_MAX);
-    // nothing on the go: no empty box, the photo has the space (unless Now playing is up at night)
-    $("shelf-section").classList.toggle("empty", !data.shows.length && !(NIGHT && npVisible()));
+    // nothing on the go: no empty box, the photo has the space (unless Now playing is up at night).
+    // With Keep watching off the show cards and heading go; Now playing can still use the row.
+    $("shelf-section").classList.toggle("kw-off", !KW_ON);
+    $("shelf-section").classList.toggle("empty", !(KW_ON && data.shows.length) && !(NIGHT && npVisible()));
+    if (!KW_ON) {
+      track.innerHTML = "";
+      shelfEls = [];
+      return;
+    }
     if (!data.shows.length) {
       track.innerHTML = '<p class="shelf-none">' + esc(t("nothing_yet")) + "</p>";
       shelfEls = [];
@@ -1040,12 +1115,12 @@
     if (NIGHT) {
       // lock screen notifications: glass cards, three in view, the row slides past the third
       track.innerHTML = data.shows.map(function (it) {
-        var art = it.backdrop || it.poster, pkg = it.app && it.app.package;
+        var art = it.backdrop || it.poster;
         var ep = it.season && it.episode ? "S" + it.season + " E" + it.episode : (it.episode_title || "");
         return '<div class="tile ncard">' +
           (art ? '<img class="thumb" src="' + esc(art) + '" alt="" decoding="async">' :
-            '<span class="thumb none">' + (pkg && iconUrl(pkg) ? '<img src="' + esc(iconUrl(pkg)) + '" alt="">' : '') + '</span>') +
-          '<div class="t"><div class="nap">' + (pkg && iconUrl(pkg) ? '<img src="' + esc(iconUrl(pkg)) + '" alt="" onerror="this.remove()">' : "") +
+            '<span class="thumb none"></span>') +
+          '<div class="t"><div class="nap">' +
           esc(it.app ? it.app.name : "") + "</div><b>" + esc(it.title) + "</b>" + (ep ? "<i>" + esc(ep) + "</i>" : "") +
           (it.progress ? '<span class="nbar"><i style="width:' + Math.round(it.progress * 100) + '%"></i></span>' : "") + "</div></div>";
       }).join("");
@@ -1064,6 +1139,15 @@
     shelfEls = Array.prototype.slice.call(track.children);
   }
 
+  function setKeepWatching(on) {
+    KW_ON = !!on;
+    ST.keep_watching = KW_ON;
+    saveSettings();
+    renderShelf();
+    renderNp();
+    if (!KW_ON && zone === "shelf") { zone = gridEls.length ? "grid" : "quick"; g = 0; paintFocus(); }
+  }
+
   // ---------------- apps ----------------
   function tucked(a) {
     return TUCKED.indexOf(a.package) >= 0 || TUCKED_NAMES.test(a.name || "");
@@ -1079,7 +1163,9 @@
   // config.json has a home_assistant section with rooms or scenes. Otherwise nothing changes.
   function smartOn() { return !!(window.smartHome && window.smartHome.available()); }
   function smartItem() { return { kind: "smart", name: t("smart_home"), package: "smart:home" }; }
-  function toolItems() { return smartOn() ? [smartItem(), gearItem()] : [gearItem()]; }
+  // The Settings tile is gone from the dock: the gear button at the top left (#qgear) opens the same
+  // menu, so the row holds only apps (and Smart home, when it is set up).
+  function toolItems() { return smartOn() ? [smartItem()] : []; }
   function gridList() {
     if (NIGHT) return dockList();
     var apps = shownApps().filter(function (a) { return a.package !== SETTINGS_PKG; });
@@ -1170,6 +1256,7 @@
     var text = hintFlash ||
       (zone === "clockbar" ? "" :
         lift ? t("app_lift_hint") :
+        zone === "qgear" ? t("qgear_hint") :
         zone === "clock" ? t("ck_hint_clock") :
         NIGHT && expanded && zone === "grid" ? t("app_add_hint") : "");
     $("hint").textContent = text;
@@ -1346,7 +1433,7 @@
     else if (iconUrl(it.package)) face = '<div class="face"><img src="' + esc(iconUrl(it.package)) + '" alt="" decoding="async" onerror="this.parentNode.className=\'face word\';this.parentNode.textContent=this.getAttribute(\'data-name\')" data-name="' + esc(it.name) + '"></div>';
     else if (it.store) face = '<div class="face tool">' + ICONS.store + "</div>";
     else face = '<div class="face word">' + esc(it.name) + "</div>";
-    var cls = "tile app dock-ic" + (it.kind === "gear" ? " gearfloat" : "") + (lift && it.package === lift.pkg ? " lifted" : "");
+    var cls = "tile app dock-ic" + (lift && it.package === lift.pkg ? " lifted" : "");
     return '<div class="' + cls + '">' + face + dotHTML(it) + '<div class="label">' + esc(it.name) + "</div></div>";
   }
 
@@ -1360,7 +1447,7 @@
     else if (it.banner) face = '<div class="face"><img src="' + esc(it.banner) + '" alt="" decoding="async"></div>';
     else if (iconUrl(it.package)) face = '<div class="face icon" style="background:' + esc(it.colour || "#2a2a30") + '"><img src="' + esc(iconUrl(it.package)) + '" alt=""></div>';
     else face = '<div class="face word" style="background:' + esc(it.colour || "#2a2a30") + '">' + esc(it.name) + "</div>";
-    return '<div class="tile app' + (it.kind === "gear" ? " gearfloat" : "") + '">' + face + dotHTML(it) + '<div class="label">' + esc(it.name) + "</div></div>";
+    return '<div class="tile app">' + face + dotHTML(it) + '<div class="label">' + esc(it.name) + "</div></div>";
   }
   // The small blue dot: an app not opened yet, or (on the gear tile) a new couch-tv release.
   function dotHTML(it) {
@@ -1378,13 +1465,8 @@
       GRID_COLS = expanded ? 12 : Math.max(1, Math.min(12, gridItems.length));
       $("grid").style.gridTemplateColumns = "repeat(" + GRID_COLS + ", 7rem)";
     }
-    Array.prototype.forEach.call(document.querySelectorAll("body > .tile.gearfloat"), function (n) { n.remove(); });
     $("grid").innerHTML = gridItems.map(appHTML).join("");
     gridEls = Array.prototype.slice.call($("grid").children);
-    // the dock lives inside a transformed layer, so fixed positioning only works once the gear is
-    // lifted out to the page itself; the focus list keeps the same element reference.
-    var gearTile = $("grid").querySelector(".tile.gearfloat");
-    if (gearTile) document.body.appendChild(gearTile);
     clearIcons();
     renderHint();
   }
@@ -1410,6 +1492,7 @@
   // ---------------- focus ----------------
   function clearFocus() {
     shelfEls.concat(gridEls, quickEls).forEach(function (el) { if (el) el.classList.remove("focus"); });
+    var gq = $("qgear"); if (gq) gq.classList.remove("focus");
     positionClockFocus(false);
   }
 
@@ -1444,7 +1527,12 @@
       renderHint();
       return;
     }
-    if (zone === "gear") { if (gridEls[g]) gridEls[g].classList.add("focus"); renderGear(); return; }
+    if (zone === "gear") {
+      if (gearAnchor) gearAnchor.classList.add("focus");
+      else if (gridEls[g]) gridEls[g].classList.add("focus");
+      renderGear();
+      return;
+    }
     if (zone === "appmenu") { if (gridEls[g]) gridEls[g].classList.add("focus"); renderAppMenu(); return; }
     if (zone === "updask") { renderAsk(); return; }
     if (zone === "menu") { renderMenu(); return; }
@@ -1452,6 +1540,13 @@
     if (zone === "np") {
       if (!npReach()) { zone = shelfEls.length ? "shelf" : "grid"; paintFocus(); return; }
       renderNp();
+      hero(null);
+      $("place").style.visibility = "";
+      showPhoto();
+      return;
+    }
+    if (zone === "qgear") {
+      var gq = $("qgear"); if (gq) gq.classList.add("focus");
       hero(null);
       $("place").style.visibility = "";
       showPhoto();
@@ -1504,11 +1599,17 @@
     touched = true;
     if (zone === "settings") { setMove(dx, dy); return; }
     if (zone === "smart") { window.smartHome.move(dx, dy); return; }
-    if (zone === "gear") { if (dy) { gi = Math.max(0, Math.min(1, gi + dy)); renderGear(); } return; }
+    if (zone === "gear") { if (dy) { gi = Math.max(0, Math.min(2, gi + dy)); renderGear(); } return; }
     if (zone === "appmenu") { if (dy) { amI = Math.max(0, Math.min(amItems.length - 1, amI + dy)); renderAppMenu(); } return; }
     if (zone === "updask") { if (dy) { ai = Math.max(0, Math.min(1, ai + dy)); renderAsk(); } return; }
     if (zone === "inputs") { if (dy) { inI = Math.max(0, Math.min(inItems.length - 1, inI + dy)); renderInputMenu(); } return; }
     if (zone === "clockbar") { ckMove(dx, dy); return; }
+    if (zone === "qgear") {
+      if (dx > 0) { zone = "quick"; qi = 0; }
+      else if (dy > 0 && gridEls.length) { zone = "grid"; g = 0; }
+      paintFocus();
+      return;
+    }
     if (zone === "clock") {
       // down (or either side) leaves the digits; up stays put, there is nothing above them
       if (dy > 0 || dx) { zone = hasQuick() ? "quick" : "grid"; if (zone === "quick" && dx) qi = dx > 0 ? 0 : quickVisible().length - 1; }
@@ -1548,10 +1649,12 @@
     }
     if (zone === "quick") {
       var nq = quickVisible().length;
+      if (dx < 0 && qi === 0) { zone = "qgear"; paintFocus(); return; }
       if (dx) qi = Math.max(0, Math.min(nq - 1, qi + dx));
       else if (dy < 0 && NIGHT) zone = "clock";   // up from the quick buttons: the clock itself
       else if (dy > 0) {
-        if (!NIGHT && npReach()) zone = "np";
+        if (NIGHT && npReach() && !cards.length) { zone = "np"; npI = 2; }
+        else if (!NIGHT && npReach()) zone = "np";
         else if (cards.length) zone = "shelf";
         else { zone = "grid"; g = Math.min(GRID_COLS, gridEls.length) - 1; }
       }
@@ -1621,7 +1724,7 @@
     if (zone === "settings") return setHold();
     if (zone === "clockbar") return true;   // holding OK in the drawer does nothing; a press still acts
     if (zone === "clock") { openClockBar(); return true; }   // hold OK on the clock: the live drawer
-    if (zone === "gear" || zone === "smart" || zone === "updask" || zone === "inputs") return false;
+    if (zone === "gear" || zone === "smart" || zone === "updask" || zone === "inputs" || zone === "qgear") return false;
     if (lift) { dropLift(); return true; }
     if (zone === "grid" && NIGHT) return holdApp();
     return false;
@@ -1633,13 +1736,19 @@
     if (zone === "smart") { window.smartHome.ok(); return; }
     if (zone === "clockbar") { ckActivate(); return; }
     if (zone === "clock") { openClockBar(); return; }
-    if (zone === "gear") { if (gi === 0) openSettings(); else openTvSettings(); return; }
+    if (zone === "gear") {
+      if (gi === 0) openSettings();
+      else if (gi === 1) openTvSettings();
+      else { setKeepWatching(!KW_ON); renderGear(); }
+      return;
+    }
     if (zone === "appmenu") { doAppMenu(); return; }
     if (zone === "updask") { answerAsk(ai === 0); return; }
     if (lift) { dropLift(); return; }
     if (zone === "menu") { setSleep(SLEEP_CHOICES[menuI]); paintFocus(); return; }
     if (zone === "inputs") { doInputMenu(); paintFocus(); return; }
     if (zone === "np") { npPress(); return; }
+    if (zone === "qgear") { openGear(true); return; }
     if (zone === "quick") { quickAction(); return; }
     if (zone === "shelf") {
       var it = data.shows[s];
@@ -1687,33 +1796,36 @@
   function closeSmart() { window.smartHome.close(); zone = "grid"; }
 
   // ---------------- the gear tile's menu: Home settings or the TV's own settings ----------------
-  var gi = 0;
-  function openGear() {
+  var gi = 0, gearAnchor = null;
+  function openGear(fromQuick) {
+    gearAnchor = fromQuick ? $("qgear") : null;
     zone = "gear"; gi = 0;
     renderGear();
   }
   function renderGear() {
     var pop = $("gear-pop");
     var items = [[ICONS.sliders, t("gear_home"), updReady() ? t("upd_gear", { v: UPD.latest }) : t("gear_home_sub")],
-      [ICONS.gear, t("gear_tv"), t("gear_tv_sub")]];
+      [ICONS.gear, t("gear_tv"), t("gear_tv_sub")],
+      [ICONS.eye, t("gear_kw"), KW_ON ? t("gear_kw_on") : t("gear_kw_off")]];
     pop.innerHTML = items.map(function (it, i) {
       return '<div class="grow' + (i === gi ? " focus" : "") + '" role="menuitem"><i>' + it[0] + "</i><span><b>" + esc(it[1]) +
         "</b><small>" + esc(it[2]) + "</small></span></div>";
     }).join("");
     pop.classList.add("on");
     document.documentElement.classList.add("gearing");
-    // above the gear tile, kept inside the screen's safe area
-    var el = gridEls[g], rem = innerWidth / 120;
+    // under the button it came from, kept inside the screen's safe area
+    var el = gearAnchor || gridEls[g], rem = innerWidth / 120;
     if (el) {
       var b = el.getBoundingClientRect(), w = pop.offsetWidth;
       pop.style.left = Math.max(5 * rem, Math.min(innerWidth - w - 5 * rem, b.left + b.width / 2 - w / 2)) + "px";
-      pop.style.top = Math.max(3.75 * rem, b.top - pop.offsetHeight - 2.25 * rem) + "px";
+      pop.style.top = gearAnchor ? (b.bottom + 1.25 * rem) + "px" : Math.max(3.75 * rem, b.top - pop.offsetHeight - 2.25 * rem) + "px";
     }
   }
   function closeGear() {
     $("gear-pop").classList.remove("on");
     document.documentElement.classList.remove("gearing");
-    if (zone === "gear") zone = "grid";
+    if (zone === "gear") zone = gearAnchor ? "qgear" : "grid";
+    gearAnchor = null;
   }
   // Android's own settings: the Settings app where the TV has one, else the system settings screen.
   function openTvSettings() {
@@ -1965,7 +2077,14 @@
       { kind: "toggle", key: "wx-show", label: t("wx_show"), value: WX_SHOW ? t("on") : t("off"), act: function () {
         WX_SHOW = !WX_SHOW; ST.wx_show = WX_SHOW; saveSettings();
         if (WX_SHOW) refreshWeather();
+        ambientSync();
         clock();
+      } },
+      { kind: "toggle", key: "wx-ambient", label: t("wx_ambient"), sub: t("wx_ambient_sub"), value: WX_AMBIENT ? t("on") : t("off"), act: function () {
+        WX_AMBIENT = !WX_AMBIENT; ST.ambient_weather = WX_AMBIENT; saveSettings(); ambientSync();
+      } },
+      { kind: "toggle", key: "wx-sun-grade", label: t("wx_sun_grade"), sub: t("wx_sun_grade_sub"), value: WX_SUN_GRADE ? t("on") : t("off"), act: function () {
+        WX_SUN_GRADE = !WX_SUN_GRADE; ST.ambient_sun_grade = WX_SUN_GRADE; saveSettings(); ambientSync();
       } },
       { kind: "cycle", key: "wx-unit", label: t("wx_units"), value: WX_F ? "°F (Fahrenheit)" : "°C (Celsius)", act: function () {
         WX_F = !WX_F; ST.wx_unit = WX_F ? "f" : "c"; saveSettings(); clock();
@@ -2015,6 +2134,12 @@
     rows.push({ kind: "cycle", key: "clock", label: t("clock"), value: CLOCK24 ? t("clock_24") : t("clock_12"), act: function () {
       CLOCK24 = !CLOCK24; ST.clock = CLOCK24 ? "24h" : "12h"; saveSettings(); glassShown = ""; clock();
     } });
+    // Keep watching: the row of started shows and films, right under the scene and clock rows
+    rows.push(head(t("kw_head")));
+    rows.push({ kind: "toggle", key: "keep-watching", label: t("kw_show"), value: KW_ON ? t("on") : t("off"), act: function () {
+      setKeepWatching(!KW_ON);
+    } });
+    rows.push(info("kw-note", t("kw_note")));
     // the TV's own screensaver (Google TV's Ambient mode) and the albums it shows
     rows.push(head(t("ambient_head")));
     rows.push({ kind: "action", key: "ambient", label: t("ambient_settings"), sub: t("ambient_settings_sub"),
@@ -2265,7 +2390,7 @@
     if (q === "picture" && (OFFLINE || !picShown)) return t("quick_needs_picture");
     if (q === "input" && OFFLINE && !nativeInputs()) return t("quick_needs_inputs");
     if (q === "screensaver" && !nativeScreensaver()) return t("quick_needs_tv_app");
-    if ((q === "bluetooth" || q === "network") && (!ON_TV || OFFLINE)) return t("quick_needs_tv_app");
+    if ((q === "bluetooth" || q === "network") && !nativeSettings() && (!ON_TV || OFFLINE)) return t("quick_needs_tv_app");
     if (q === "connections" && !nativeSettings() && (!ON_TV || OFFLINE)) return t("quick_needs_tv_app");
     return "";
   }
@@ -2577,7 +2702,19 @@
   // Every choice lives in ST, so it is kept on this TV straight away (localStorage, and the launcher's
   // own copy) and survives a restart. The digits are rebuilt in drawClocks(), never by editing #time:
   // the Night clock is four clipped glass layers per scene.
-  function ck(key) { var v = ST[key]; return v == null ? CK_DEF[key] : v; }
+  // Each scene keeps its own clock: ST.clock_scenes[scene id]. A scene with no saved copy
+  // starts from the look this TV already had (the old top-level keys), then the built-in default.
+  function ckSceneId() { var s = SCENES[scene]; return s && s.id ? s.id : "default"; }
+  function ckScene() {
+    if (!ST.clock_scenes || typeof ST.clock_scenes !== "object" || Array.isArray(ST.clock_scenes)) ST.clock_scenes = {};
+    var id = ckSceneId(), all = ST.clock_scenes;
+    if (!all[id] || typeof all[id] !== "object" || Array.isArray(all[id])) {
+      all[id] = {};
+      Object.keys(CK_DEF).forEach(function (k) { if (ST[k] != null) all[id][k] = ST[k]; });
+    }
+    return all[id];
+  }
+  function ck(key) { var v = ckScene()[key]; return v == null ? CK_DEF[key] : v; }
   function ckOpt(list, val) {
     for (var i = 0; i < list.length; i++) if (list[i][0] === val) return list[i];
     return list[0];
@@ -2599,18 +2736,13 @@
     r.classList.add("ck-fill-" + ck("clock_fill"));
     r.classList.add("ck-align-" + ck("clock_align"));
     r.classList.add("ck-color-" + ck("clock_color"));
-    if (ck("clock_depth")) r.classList.add("ck-depth");
-    if (ck("clock_two")) r.classList.add("ck-two");
-    if (ck("clock_outline")) r.classList.add("ck-outline");
+    if (ck("clock_shadow")) r.classList.add("ck-shadow");
     if (ck("clock_date") === "off") r.classList.add("ck-nodate");
+    if (ck("clock_date") === "fixed") r.classList.add("ck-date-fixed");
     r.style.setProperty("--ck-scale", ck("clock_scale"));
     r.style.setProperty("--ck-weight", ck("clock_weight"));
     var hex = ckHex(ck("clock_color")) || "#ffffff";
     r.style.setProperty("--ck-c1", hex);
-    // the second colour (two-tone minutes): the accent, or white when the digits are already it
-    var accent = ck("clock_color") === "white" || ck("clock_color") === "oled" ? "#6fd6ff" : hex;
-    r.style.setProperty("--ck-c2", accent === hex ? "#ffffff" : accent);
-    r.style.setProperty("--ck-glow", hexA(accent === "#ffffff" ? "#6fd6ff" : accent, 0.5));
     if (ck("clock_color") === "wallpaper") r.style.removeProperty("--ck-user-tint");
     else r.style.setProperty("--ck-user-tint", hex);
     glassShown = "";
@@ -2622,21 +2754,75 @@
     return '<span class="ck"><span class="ck-h">' + esc(h) + '</span><span class="ck-colon">:</span>' +
       '<span class="ck-m">' + esc(m) + "</span></span>";
   }
-  // The date sits just above the digits (or below them), wherever the clock has been moved to.
-  // The built-in scenes have hand-placed dates, so those stay as they are unless the clock is
-  // centred on the screen or the date was asked for below the digits.
+  // The tight box around the digits themselves. .fill spans the whole scene, so measuring the
+  // element gave a full-width rectangle: the old focus ring stretched into a wide box.
+  function clockTextRect(el) {
+    if (!el) return null;
+    try {
+      var rg = document.createRange();
+      rg.selectNodeContents(el.querySelector(".fill") || el);
+      var r = rg.getBoundingClientRect();
+      if (r && r.width > 0 && r.height > 0) return r;
+    } catch (e) {}
+    return el.getBoundingClientRect();
+  }
+  function dateOverlaps(a, b) {
+    return !!(a && b && b.width && a.right > b.left && a.left < b.right && a.bottom > b.top && a.top < b.bottom);
+  }
+  // The date and the weather sit just above the digits (or below them), wherever the clock has been
+  // moved to. "Fixed" is the one exception: top centre, level with the quick buttons. The line stays
+  // on screen, and gives up the weather word or its temperature before it touches the quick buttons.
   function placeDate() {
     if (!NIGHT) return;
     var d = $("date");
     if (!d) return;
     if (ck("clock_date") === "off") { d.style.display = "none"; return; }
     d.style.display = "";
-    var custom = ck("clock_date") === "below" || ck("clock_align") === "mid";
+    var rem = innerWidth / 120;
+    d.classList.remove("tight", "tighter");
+    d.style.left = ""; d.style.right = ""; d.style.transform = ""; d.style.textAlign = "";
+    if (ck("clock_date") === "fixed") {
+      d.style.left = "50%"; d.style.right = "auto"; d.style.transform = "translateX(-50%)"; d.style.textAlign = "center";
+      var qf = $("qbtns").getBoundingClientRect();
+      var dhf = d.getBoundingClientRect().height || 2.5 * rem;
+      d.style.top = Math.round(qf.height ? qf.top + (qf.height - dhf) / 2 : 5 * rem) + "px";
+      if (d.getBoundingClientRect().width > innerWidth - 2 * rem) d.classList.add("tight");
+      if (d.getBoundingClientRect().width > innerWidth - 2 * rem) d.classList.add("tighter");
+      return;
+    }
     var el = document.querySelector(".scene.on .gclock:not(.under)");
-    if (!custom || !el) { d.style.top = ""; return; }
-    var r = el.getBoundingClientRect(), rem = innerWidth / 120;
-    var top = ck("clock_date") === "below" ? r.bottom + 0.55 * rem : r.top - 3.375 * rem;
-    d.style.top = Math.max(0.5 * rem, Math.round(top)) + "px";
+    if (!el) { d.style.top = ""; return; }
+    var r = clockTextRect(el);
+    if (!r || !r.width) { d.style.top = ""; return; }
+    var below = ck("clock_date") === "below";
+    var dh = d.getBoundingClientRect().height || 2.5 * rem;
+    // no room above: put it under the digits instead of pushing it off the top
+    if (!below && r.top - dh - 0.5 * rem < 0.5 * rem) below = true;
+    d.style.left = Math.round(r.left + r.width / 2) + "px";
+    d.style.right = "auto";
+    d.style.transform = "translateX(-50%)";
+    d.style.textAlign = "center";
+    d.style.top = Math.round(below ? r.bottom + 0.5 * rem : r.top - dh - 0.5 * rem) + "px";
+    // keep it on screen, dropping the weather word and then the temperature if it still runs off
+    if (d.getBoundingClientRect().width > innerWidth - 2 * rem) d.classList.add("tight");
+    if (d.getBoundingClientRect().width > innerWidth - 2 * rem) d.classList.add("tighter");
+    var b = d.getBoundingClientRect();
+    if (b.left < rem || b.right > innerWidth - rem) {
+      var cx = Math.max(rem + b.width / 2, Math.min(innerWidth - rem - b.width / 2, r.left + r.width / 2));
+      d.style.left = Math.round(cx) + "px";
+      b = d.getBoundingClientRect();
+    }
+    // the quick buttons live at the top right: slide the date clear of them, never under them
+    var q = $("quick").classList.contains("none") ? null : $("qbtns").getBoundingClientRect();
+    if (q && q.width && dateOverlaps(d.getBoundingClientRect(), q)) {
+      d.classList.add("tight");
+      if (dateOverlaps(d.getBoundingClientRect(), q)) d.classList.add("tighter");
+      b = d.getBoundingClientRect();
+      if (dateOverlaps(b, q)) {
+        var left = Math.max(rem + b.width / 2, q.left - rem - b.width / 2);
+        d.style.left = Math.round(left) + "px";
+      }
+    }
   }
   // The ring around the digits while the clock itself has the focus (up from the quick buttons).
   function positionClockFocus(on) {
@@ -2645,14 +2831,9 @@
     if (!on) { f.classList.remove("on"); return; }
     var el = document.querySelector(".scene.on .gclock:not(.under)");
     if (!el) { f.classList.remove("on"); return; }
-    var rect = null;
-    try {
-      var rg = document.createRange();
-      rg.selectNodeContents(el.querySelector(".rim") || el);
-      rect = rg.getBoundingClientRect();
-    } catch (e) {}
-    if (!rect || !rect.width) rect = el.getBoundingClientRect();
-    var rem = innerWidth / 120, pad = 1.25 * rem;
+    var rect = clockTextRect(el);
+    if (!rect || !rect.width) { f.classList.remove("on"); return; }
+    var rem = innerWidth / 120, pad = 0.9 * rem;
     f.style.left = (rect.left - pad) + "px";
     f.style.top = (rect.top - pad) + "px";
     f.style.width = (rect.width + pad * 2) + "px";
@@ -2660,7 +2841,7 @@
     f.classList.add("on");
   }
   function setClock(key, val) {
-    ST[key] = val;
+    ckScene()[key] = val;
     applyClock();
     saveSettings();
     if (CKB.open) renderCkbar();
@@ -2677,7 +2858,8 @@
     setClock(key, list[i][0]);
   }
   function resetClock() {
-    Object.keys(CK_DEF).forEach(function (k) { delete ST[k]; });
+    var o = ckScene();
+    Object.keys(CK_DEF).forEach(function (k) { o[k] = CK_DEF[k]; });
     applyClock();
     saveSettings();
     if (CKB.open) renderCkbar();
@@ -2701,22 +2883,33 @@
   var CK_TAB_ICONS = [CKI.shape, CKI.type, CKI.colour];
   // ---- the clock card: the Font & Colour popup, with every old control kept ----
   var CK_FACE = { antonio: "Antonio", inter: "Inter", archivo: "'Archivo Black'", nunito: "Nunito", fraunces: "Fraunces" };
-  var CK_SWATCH = [["wallpaper", "ck_sw_wallpaper", "linear-gradient(135deg,#9fc4ff,#ffc4d8 55%,#ffe0a8)"],
-    ["white", "ck_sw_white", "#ffffff"], ["cyan", "ck_sw_frosted", "#6fd6ff"],
-    ["amber", "ck_sw_sunset", "#f0a45c"], ["oled", "ck_sw_obsidian", "#0b0b10"]];
-  var CK_ROWS = ["fonts", "sliders", "swatches", "layout", "pos", "date"];
+  var CK_SWATCH = CK_COLOURS.map(function (o) {
+    return [o[0], "ck_sw_" + o[0], o[2] || "linear-gradient(135deg,#9fc4ff,#ffc4d8 55%,#ffe0a8)"];
+  });
+  var CK_ROWS = ["fonts", "layout", "sliders", "swatches", "fill", "pos", "date", "shadow"];
   var CKB = { open: false, row: 0, col: 0, grab: false, foot: false, fi: 0, text: 0 };
   function ckRowLen(k) {
     if (k === "fonts") return CK_FONTS.length;
+    if (k === "layout") return CK_LAYOUTS.length;
     if (k === "sliders") return 2;
     if (k === "swatches") return CK_SWATCH.length;
-    if (k === "layout") return 2;
-    if (k === "pos") return CK_POS.length;
+    if (k === "fill") return CK_FILLS.length;
+    if (k === "pos") return CK_ALIGNS.length;
     if (k === "date") return CK_DATES.length;
     return 1;
   }
   function ckIndex(list, v) {
     for (var i = 0; i < list.length; i++) if (String(list[i][0]) === String(v)) return i;
+    return 0;
+  }
+  // Where the cursor starts when a row gets the focus: on the choice that is already set.
+  function ckRowStart(k) {
+    if (k === "fonts") return ckIndex(CK_FONTS, ck("clock_font"));
+    if (k === "layout") return ckIndex(CK_LAYOUTS, ck("clock_layout"));
+    if (k === "swatches") return ckIndex(CK_SWATCH, ck("clock_color"));
+    if (k === "fill") return ckIndex(CK_FILLS, ck("clock_fill"));
+    if (k === "pos") return ckIndex(CK_ALIGNS, ck("clock_align"));
+    if (k === "date") return ckIndex(CK_DATES, ck("clock_date"));
     return 0;
   }
   function ckSizePct() {
@@ -2727,21 +2920,20 @@
     }
     return (i / (CK_SIZES.length - 1)) * 100;
   }
-  function ckSegHTML(label, opts, cur, col, focus, cls) {
-    return '<span class="cklab">' + esc(label) + '</span><span class="ckopts ' + (cls || "") + '">' +
-      opts.map(function (o, i) {
-        return '<span class="ckopt' + (String(o[0]) === String(cur) ? " on" : "") +
-          (focus && i === col ? " sel" : "") + '">' + esc(o[2] || t(o[1])) + "</span>";
-      }).join("") + "</span>";
-  }
-  function ckRowHTML(k, i) {
-    var focus = !CKB.foot && CKB.row === i;
+  function ckRowHTML(k, i) {    var focus = !CKB.foot && CKB.row === i;
     var cls = "ckrow2" + (focus ? " focus" : "");
     if (k === "fonts") {
       return '<div class="' + cls + ' ckfonts">' + CK_FONTS.map(function (f, fi) {
         return '<span class="ckf' + (ck("clock_font") === f[0] ? " on" : "") + (focus && CKB.col === fi ? " sel" : "") + '"' +
           ' style="font-family:' + CK_FACE[f[0]] + '">12</span>';
       }).join("") + "</div>";
+    }
+    if (k === "layout") {
+      return '<div class="' + cls + '"><span class="cklab cklab-big">' + esc(t("ck_layout")) + '</span><span class="ckopts cklayouts">' +
+        CK_LAYOUTS.map(function (o, oi) {
+          return '<span class="ckopt' + (String(o[0]) === String(ck("clock_layout")) ? " on" : "") +
+            (focus && CKB.col === oi ? " sel" : "") + '">' + esc(t(o[1])) + "</span>";
+        }).join("") + "</span></div>";
     }
     if (k === "sliders") {
       var sp = ckSizePct(), wp = (ckIndex(CK_WEIGHTS, ck("clock_weight")) / (CK_WEIGHTS.length - 1)) * 100;
@@ -2759,36 +2951,44 @@
           '" style="background:' + o[2] + '"></span>';
       }).join("") + "</div>";
     }
-    if (k === "layout") {
-      return '<div class="' + cls + '">' + ckSegHTML(t("ck_layout"),
-        [["single", "ck_l_inline"], ["stack", "ck_l_split"]], ck("clock_layout") === "stack" ? "stack" : "single",
-        CKB.col, focus) + "</div>";
+    if (k === "fill") {
+      return '<div class="' + cls + '"><span class="cklab cklab-big">' + esc(t("ck_fill")) + '</span><span class="ckopts ckfills">' +
+        CK_FILLS.map(function (o, oi) {
+          return '<span class="ckopt' + (String(o[0]) === String(ck("clock_fill")) ? " on" : "") +
+            (focus && CKB.col === oi ? " sel" : "") + '">' + esc(t(o[1])) + "</span>";
+        }).join("") + "</span></div>";
     }
     if (k === "pos") {
-      var v = ck("clock_align") === "mid" ? "center" : ck("clock_align");
-      var pi = ckIndex(CK_POS, v);
-      return '<div class="' + cls + '"><span class="cklab">' + esc(t("ck_align")) + '</span><span class="ckdots">' +
-        CK_POS.map(function (o, oi) { return '<i class="' + (oi === pi ? "on" : "") + (focus && CKB.col === oi ? " sel" : "") + '"></i>'; }).join("") +
-        "</span></div>";
+      var pi = ckIndex(CK_ALIGNS, ck("clock_align"));
+      return '<div class="' + cls + '"><span class="cklab cklab-big">' + esc(t("ck_align")) + '</span><span class="ckopts ckaligns">' +
+        CK_ALIGNS.map(function (o, oi) {
+          return '<span class="ckopt' + (oi === pi ? " on" : "") + (focus && CKB.col === oi ? " sel" : "") + '">' +
+            esc(t(o[1])) + "</span>";
+        }).join("") + "</span></div>";
     }
     if (k === "date") {
-      return '<div class="' + cls + '">' + ckSegHTML(t("ck_date"),
-        [["above", "ck_d_above"], ["below", "ck_d_below"], ["off", "ck_d_off"]], ck("clock_date"),
-        CKB.col, focus) + "</div>";
+      return '<div class="' + cls + '"><span class="cklab cklab-big">' + esc(t("ck_date")) + '</span><span class="ckopts ckdates">' +
+        CK_DATES.map(function (o, oi) {
+          return '<span class="ckopt' + (String(o[0]) === String(ck("clock_date")) ? " on" : "") +
+            (focus && CKB.col === oi ? " sel" : "") + '">' + esc(t(o[1])) + "</span>";
+        }).join("") + "</span></div>";
+    }
+    if (k === "shadow") {
+      var son = !!ck("clock_shadow");
+      return '<div class="' + cls + '"><span class="cklab cklab-big">' + esc(t("ck_shadow")) + '</span>' +
+        '<span class="ckswitch' + (son ? " on" : "") + (focus && CKB.col === 0 ? " sel" : "") + '"><i></i></span></div>';
     }
   }
   function renderCkbar() {
     var body = $("ck-body");
     if (!body) return;
     body.innerHTML = '<div class="ck-list" id="ck-list">' + CK_ROWS.map(ckRowHTML).join("") + "</div>";
+    $("ck-title").textContent = t("ck_title");
+    $("ck-scene").textContent = sceneLabel(SCENES[scene]);
     $("ckbar-reset").className = "ckfoot-reset" + (CKB.foot && CKB.fi === 0 ? " focus" : "");
-    $("ckbar-done").className = "ckfoot-done" + (CKB.foot && CKB.fi === 2 ? " focus" : "");
+    $("ckbar-reset").textContent = t("ck_reset_pill");
+    $("ckbar-done").className = "ckfoot-done" + (CKB.foot && CKB.fi === 1 ? " focus" : "");
     $("ckbar-done-text").textContent = t("ck_done");
-    var fill = $("ck-fill");
-    fill.className = "ckfill" + (CKB.foot && CKB.fi === 1 ? " focus" : "");
-    fill.querySelectorAll(".ckopt").forEach(function (o) {
-      o.classList.toggle("on", (o.getAttribute("data-v") === "solid") === (ck("clock_fill") === "solid"));
-    });
     var list = $("ck-list"), el = list.children[CKB.row], view = body.clientHeight;
     if (el) {
       var top = el.offsetTop, h = el.offsetHeight;
@@ -2798,7 +2998,7 @@
     $("ckbar").classList.add("on");
   }
   function openClockBar() {
-    CKB.open = true; CKB.row = 0; CKB.col = ckIndex(CK_FONTS, ck("clock_font"));
+    CKB.open = true; CKB.row = 0; CKB.col = ckRowStart("fonts");
     CKB.grab = false; CKB.foot = false; CKB.fi = 0;
     $("ck-body").scrollTop = 0;
     zone = "clockbar";
@@ -2818,7 +3018,7 @@
     if (CKB.foot) {
       if (dy < 0) { CKB.foot = false; CKB.row = CK_ROWS.length - 1; CKB.col = 0; }
       else if (dx) {
-        CKB.fi = Math.max(0, Math.min(2, CKB.fi + (dx > 0 ? 1 : -1)));
+        CKB.fi = Math.max(0, Math.min(1, CKB.fi + (dx > 0 ? 1 : -1)));
         renderCkbar(); return;
       }
       renderCkbar(); return;
@@ -2827,13 +3027,16 @@
     if (dy) {
       CKB.row = Math.max(0, Math.min(CK_ROWS.length - 1, CKB.row + dy));
       CKB.grab = false;
-      CKB.col = Math.min(CKB.col, ckRowLen(CK_ROWS[CKB.row]) - 1);
+      CKB.col = ckRowStart(CK_ROWS[CKB.row]);
       renderCkbar(); return;
     }
     if (!dx) return;
     var k = CK_ROWS[CKB.row];
     if (k === "fonts") CKB.col = Math.max(0, Math.min(CK_FONTS.length - 1, CKB.col + dx));
-    else if (k === "swatches") CKB.col = Math.max(0, Math.min(CK_SWATCH.length - 1, CKB.col + dx));
+    else if (k === "layout") {
+      CKB.col = (CKB.col + (dx > 0 ? 1 : -1) + CK_LAYOUTS.length) % CK_LAYOUTS.length;
+      setClock("clock_layout", CK_LAYOUTS[CKB.col][0]);
+    } else if (k === "swatches") CKB.col = Math.max(0, Math.min(CK_SWATCH.length - 1, CKB.col + dx));
     else if (k === "sliders") {
       if (CKB.grab) {
         if (CKB.col === 0) {
@@ -2846,35 +3049,41 @@
           setClock("clock_weight", CK_WEIGHTS[wi][0]);
         }
       } else CKB.col = Math.max(0, Math.min(1, CKB.col + dx));
-    } else if (k === "layout") setClock("clock_layout", ck("clock_layout") === "stack" ? "single" : "stack");
-    else if (k === "pos") {
-      var p = ckIndex(CK_POS, ck("clock_align") === "mid" ? "center" : ck("clock_align"));
-      p = (p + (dx > 0 ? 1 : -1) + CK_POS.length) % CK_POS.length;
-      setClock("clock_align", CK_POS[p][0]);
-      CKB.col = p;
+    } else if (k === "fill") {
+      CKB.col = (CKB.col + (dx > 0 ? 1 : -1) + CK_FILLS.length) % CK_FILLS.length;
+      setClock("clock_fill", CK_FILLS[CKB.col][0]);
+    } else if (k === "pos") {
+      CKB.col = (CKB.col + (dx > 0 ? 1 : -1) + CK_ALIGNS.length) % CK_ALIGNS.length;
+      setClock("clock_align", CK_ALIGNS[CKB.col][0]);
     } else if (k === "date") {
       var di = ckIndex(CK_DATES, ck("clock_date"));
       di = (di + (dx > 0 ? 1 : -1) + CK_DATES.length) % CK_DATES.length;
       setClock("clock_date", CK_DATES[di][0]); CKB.col = di;
+    } else if (k === "shadow") {
+      setClock("clock_shadow", dx > 0);
     }
     renderCkbar();
   }
   function ckActivate() {
     if (CKB.foot) {
       if (CKB.fi === 0) resetClock();
-      else if (CKB.fi === 1) setClock("clock_fill", ck("clock_fill") === "solid" ? "glass" : "solid");
       else closeClockBar();
       return;
     }
     var k = CK_ROWS[CKB.row];
     if (k === "fonts") { setClock("clock_font", CK_FONTS[CKB.col][0]); return; }
+    if (k === "layout") { setClock("clock_layout", CK_LAYOUTS[CKB.col][0]); return; }
     if (k === "swatches") { setClock("clock_color", CK_SWATCH[CKB.col][0]); return; }
     if (k === "sliders") { CKB.grab = !CKB.grab; renderCkbar(); return; }
+    if (k === "fill") { setClock("clock_fill", CK_FILLS[CKB.col][0]); return; }
+    if (k === "pos") { setClock("clock_align", CK_ALIGNS[CKB.col][0]); return; }
+    if (k === "date") { setClock("clock_date", CK_DATES[CKB.col][0]); return; }
+    if (k === "shadow") { setClock("clock_shadow", !ck("clock_shadow")); return; }
     ckMove(1, 0);
   }
   // The same controls in Home settings, so the clock can always be changed with the remote alone.
   function clockRows() {
-    var rows = [head(t("ck_head"))];
+    var rows = [head(t("ck_head")), info("ck-scene", t("ck_scene_note", { name: sceneLabel(SCENES[scene]) }))];
     function cycle(key, label, list) {
       rows.push({ kind: "cycle", key: "ck-" + key, label: t(label), value: ckLabel(list, ck(key)),
         act: function () { ckStep(key, list, 1); }, adjust: function (d) { ckStep(key, list, d); } });
@@ -2891,9 +3100,7 @@
     cycle("clock_fill", "ck_fill", CK_FILLS);
     cycle("clock_color", "ck_colour", CK_COLOURS);
     cycle("clock_date", "ck_date", CK_DATES);
-    toggle("clock_depth", "ck_depth");
-    toggle("clock_two", "ck_two");
-    toggle("clock_outline", "ck_outline");
+    toggle("clock_shadow", "ck_shadow");
     rows.push({ kind: "nav", key: "ck-reset", label: t("ck_reset"), sub: t("ck_reset_sub"), act: resetClock });
     rows.push(info("ck-note", t("ck_note")));
     return rows;
@@ -3131,7 +3338,7 @@
     noDream: function () { note(t("no_dream")); },
     // the remote's Settings/gear key, caught by the launcher natively (MainActivity.dispatchKeyEvent)
     settingsKey: function () { blip(0, 0); settingsKey(); },
-    resume: function () { okReset(); refresh(); if (!OFFLINE) refreshQuick(); refreshWeather(); startVideo(); refreshMusic(); },
+    resume: function () { okReset(); refresh(); if (!OFFLINE) refreshQuick(); refreshWeather(); startVideo(); refreshMusic(); if (window.AmbientWeather) window.AmbientWeather.resume(); },
     // an app is in front: the video background stops until the home is back
     pause: pauseVideo,
     // the launcher's file picker has copied the chosen photos into its own storage (Home settings)
@@ -3149,6 +3356,10 @@
     clock();
     setInterval(clock, 15000);
     if (NIGHT) {
+      if (window.AmbientWeather) {
+        window.AmbientWeather.init($("weather-canvas"), $("ambient-lighting"));
+        ambientSync();
+      }
       buildScenes();
       // ?scene=fog starts on that scene, for previews (?scene=own: the first of the household's
       // photos; ?scene=<id>: one of your own scenes)
@@ -3184,7 +3395,7 @@
 
   if (MOCK || PREVIEW) {
     var sc = document.createElement("script");
-    sc.src = "mock.js";
+    sc.src = "mock.js?v=" + Date.now();   // a preview always picks up an edited mock.js
     sc.onload = start;
     document.head.appendChild(sc);
   } else {

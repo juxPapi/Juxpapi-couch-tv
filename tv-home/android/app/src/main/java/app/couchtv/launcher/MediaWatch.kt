@@ -138,11 +138,13 @@ class MediaWatch : NotificationListenerService() {
                 val pos = s.playbackState?.position?.coerceAtLeast(0L) ?: 0L
                 if (dur > 0 && pos >= dur * 0.95) continue          // finished: nothing to keep watching
                 val raw = "media://$pkg/${Integer.toHexString((pkg + "\u0000" + title).hashCode())}"
+                // A web address the media app publishes (YouTube's video stills are https URLs).
+                // These beat the notification's large icon, which is sometimes just the app's logo.
+                val webArt = httpArt(md) ?: youTubeArt(pkg, md)
                 val bits = md.getBitmap(MediaMetadata.METADATA_KEY_ALBUM_ART)
                     ?: md.getBitmap(MediaMetadata.METADATA_KEY_ART)
-                    ?: md.getBitmap(MediaMetadata.METADATA_KEY_DISPLAY_ICON)
                     ?: artUri(ctx, md)
-                    ?: synchronized(NOTIF_ART) { NOTIF_ART[pkg] }
+                    ?: (if (webArt == null) synchronized(NOTIF_ART) { NOTIF_ART[pkg] } else null)
                 if (bits != null) keepArt(ctx, raw, bits)
                 val label = try {
                     ctx.packageManager.getApplicationLabel(ctx.packageManager.getApplicationInfo(pkg, 0)).toString()
@@ -160,6 +162,7 @@ class MediaWatch : NotificationListenerService() {
                     put("app", JSONObject().put("package", pkg).put("name", label))
                     if (bits != null) put("backdrop", "http://tvos.invalid/art/" + Base64.encodeToString(
                         raw.toByteArray(Charsets.UTF_8), Base64.URL_SAFE or Base64.NO_WRAP or Base64.NO_PADDING))
+                    else if (webArt != null) put("backdrop", webArt)
                 })
             }
             return out
@@ -176,6 +179,20 @@ class MediaWatch : NotificationListenerService() {
             return try {
                 ctx.contentResolver.openInputStream(Uri.parse(u))?.use { BitmapFactory.decodeStream(it) }
             } catch (e: Exception) { null }
+        }
+
+        /** An artwork web address the app published (YouTube's stills are https://i.ytimg.com/...). */
+        private fun httpArt(md: MediaMetadata): String? {
+            val u = md.getString(MediaMetadata.METADATA_KEY_ART_URI)
+                ?: md.getString(MediaMetadata.METADATA_KEY_ALBUM_ART_URI) ?: return null
+            return if (u.startsWith("https://") || u.startsWith("http://")) u else null
+        }
+
+        /** YouTube publishes the video id; its thumbnail is the video capture the card should show. */
+        private fun youTubeArt(pkg: String, md: MediaMetadata): String? {
+            if (pkg.indexOf("youtube", ignoreCase = true) < 0) return null
+            val id = md.getString(MediaMetadata.METADATA_KEY_MEDIA_ID) ?: return null
+            return if (Regex("^[A-Za-z0-9_-]{11}$").matches(id)) "https://i.ytimg.com/vi/$id/hqdefault.jpg" else null
         }
 
         /** Keeps the latest notification large icon for each app, capped so memory cannot grow. */

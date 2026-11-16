@@ -8,7 +8,7 @@
 //   quick=sleep,look    tvs[].quick, in order (sleep, picture, look, input)
 //   picture=1           this TV has a picture mode switch (Calibrated and Dynamic)
 //   look=classic        home.look       clock=24h   home.clock     dock=6   home.dock_size
-//   scenes=fog,dawn     home.scenes     secs=8      home.scene_seconds
+//   scenes=golden       home.scenes     secs=8      home.scene_seconds
 //   myscenes=[...]      home.my_scenes, as JSON (docs/MAKE-A-SCENE.md), for your own scenes
 //   lang=it             home.language (en, es, es-MX, it, de, tr); without it, the browser's own language
 //   glass=on            home.glass (on, lite: no blur)      video=<link>   home.video_url, an MP4 or MOV
@@ -184,7 +184,7 @@
   var picture = "calibrated";
   // pretend songs for ?music= (made up, with the scenes as covers)
   var SONGS = [["Golden Hour Drive", "The Weekend Shifts", "scene-golden"], ["Low Tide", "Saltwater Radio", "scene-water"],
-               ["Fog Lights", "Northern Rivers Club", "scene-fog"]];
+               ["Fog Lights", "Northern Rivers Club", "scene-golden"]];
   var songAt = 0, songPlaying = arg("music") !== "paused";
   function mockSong() {
     var x = SONGS[songAt];
@@ -243,6 +243,13 @@
           if (method === "POST") store.set("api.settings", { settings: body.settings || {}, updated: new Date().toISOString() });
           var st = store.get("api.settings") || { settings: {}, updated: null };
           return resolve({ ok: true, settings: st.settings, updated: st.updated });
+        }
+        // ?test_wx=<WMO code>: the same code the canvas uses, with a temperature, so the date line
+        // and the weather effects can be previewed together. Without it, no weather (as before).
+        if (path.indexOf("/api/weather") === 0) {
+          var tw = parseInt(arg("test_wx"), 10);
+          if (!isFinite(tw)) return resolve({ ok: true });
+          return resolve({ ok: true, temp: 20, code: tw, text: "", is_day: true });
         }
         if (path.indexOf("/api/sleep") === 0) {
           if (method === "POST") sleepEnds = body.minutes ? new Date(Date.now() + body.minutes * 60000).toISOString() : null;

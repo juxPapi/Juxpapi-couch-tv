@@ -6,9 +6,40 @@ built and waiting for its first real LG. No ads on the home screen. Open source 
 > Note for Google TV owners: 0.11 leaves the Google home and setup apps switched on. If you set
 > couch-tv up with 0.10 or older, see [If your TV loops after a restart](#if-your-tv-loops-after-a-restart).
 
-![The Night home screen](docs/screens/home-night.jpg)
+![The Night home screen](docs/screens/home-0-13.jpg)
 
 ## Updates
+
+**16 November 2026: a tidier clock, weather that follows it, and Keep watching in the right place
+(0.13).**
+
+- **The clock setup fits in one window.** Font, layout, size, weight, colour, fill, position, date
+  orientation and the new soft shadow are all on the one card, and none of it scrolls. A change
+  applies to the scene you are on and is saved there.
+- **Date and weather follow the clock.** Above, below, off, or fixed at the top centre. The date
+  line now measures the digits themselves instead of the whole screen, so it tucks around the
+  clock wherever the scene puts it, and **Fixed** is truly top centre, level with the quick
+  buttons.
+- **A soft shadow, and fewer gimmicks.** The clock settings no longer offer 3D depth, the bold
+  outline or the two-tone styles. A new **Soft shadow** switch gives the digits a gentle lift on
+  any scene; it is in the clock drawer and in Home settings, Clock.
+- **Keep watching moved to where it belongs.** Its on/off switch now sits directly under Looks
+  and scenes in Home settings, with the note that says what it does. Its card shadow is softer
+  too.
+- **Settings left the app dock.** The gear at the top left opens the same menu, so the dock holds
+  only apps (and Smart home when it is set up).
+- **The focus ring hugs the digits.** Up from the quick buttons now draws the ring around the time
+  itself instead of a wide, empty rectangle.
+- **Weather effects tested.** Rain, snow, fog and thunderstorm draw over the scene, and the
+  optional sunlight colour grading follows the sun. The weather line is still off when weather is
+  switched off.
+- **Fewer scenes to wade through.** The unchecked scenes are gone, leaving the 11 chosen ones.
+- **The GitHub build is fixed.** The Gradle wrapper is run through `sh`, so a fresh clone builds
+  on the runner even where the executable bit is lost.
+
+![The clock drawer, every control in one window](docs/screens/clock-drawer-0-13.jpg)
+![The date fixed at the top centre, with the weather and rain](docs/screens/clock-fixed-weather-0-13.jpg)
+![Keep watching under Looks and scenes](docs/screens/settings-keep-watching-0-13.jpg)
 
 **8 November 2026: a restart could loop some Google TVs. Fixed.** A Sony Bravia Google TV owner
 found that after couch-tv went on, a restart left the TV going round: blank screen, restart, blank
@@ -126,18 +157,16 @@ them. Full guide, limits and undo: [docs/SAMSUNG.md](docs/SAMSUNG.md).
 
 ## Home backgrounds
 
-Five scenes take turns every 20 seconds, each with a big glass clock that sits just behind the
-scenery: the peaks, the volcano and the misty hills overlap the bottom of the digits, and on the
-waterline scene the clock floats on the lake with a blurred reflection under the surface. Your apps
-and "keep watching" stay put. Start on one with `?scene=<name>`, or swap in your own photos.
-**Design your own scene** (any photo, or a place you describe, with your own clock and date over
-it, and the skyline in front of the clock if you like): [docs/MAKE-A-SCENE.md](docs/MAKE-A-SCENE.md).
+The Night look takes your scenes in turn, each with a big glass clock that can sit just behind the
+scenery. It starts with the built-in **Golden hour**, and you can add your own photos or describe a
+place to make a new one. Your apps and "keep watching" stay put. Start on one with
+`?scene=<name>`, or swap in your own photos. **Design your own scene** (any photo, or a place you
+describe, with your own clock and date over it, and the skyline in front of the clock if you like):
+[docs/MAKE-A-SCENE.md](docs/MAKE-A-SCENE.md).
 
-| Night | Golden hour | Waterline |
-|---|---|---|
-| ![Night](docs/screens/home-night.jpg) | ![Golden hour](docs/screens/home-golden.jpg) | ![Waterline](docs/screens/home-water.jpg) |
-| **Fog** | **Dawn** | **Classic** (`?theme=classic`) |
-| ![Fog](docs/screens/home-fog.jpg) | ![Dawn](docs/screens/home-dawn.jpg) | ![Classic](docs/screens/home-classic.jpg) |
+| Night (Golden hour) | Classic (`?theme=classic`) |
+|---|---|
+| ![Night](docs/screens/home-0-13.jpg) | ![Classic](docs/screens/home-classic.jpg) |
 
 Shown with sample shows and sample people. On your TV, "keep watching" fills from what you
 actually watch: per TV and per person (with options B and C), up to 10 shows, newest first.

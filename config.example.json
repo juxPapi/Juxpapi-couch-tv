@@ -26,7 +26,7 @@
   ],
   "home": {
     "look": "night",
-    "scenes": ["night", "golden", "water", "fog", "dawn"],
+    "scenes": ["golden"],
     "scene_seconds": 20,
     "dock_size": 10,
     "hide_packages": []

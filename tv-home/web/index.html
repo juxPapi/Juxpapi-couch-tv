@@ -14,9 +14,14 @@
      once it plays. Over the photo, under the scenes' clocks (their photos step aside for it). -->
 <video class="bgvid" id="bgvid" muted loop playsinline preload="none" aria-hidden="true"></video>
 <div class="scenes" id="scenes" aria-hidden="true"></div>
+<!-- Weather effects and sunlight colour, drawn by ambient-weather.js (Home settings, Weather) -->
+<div class="ambient-lighting" id="ambient-lighting" aria-hidden="true"></div>
+<canvas class="weather-canvas" id="weather-canvas" aria-hidden="true"></canvas>
 <div class="scrim" aria-hidden="true"></div>
 <!-- the clock's focus ring: up from the quick buttons lands here, OK opens the clock drawer -->
 <div class="ckfocus" id="ckfocus" aria-hidden="true"></div>
+<!-- the settings quick button: top left, opens Home settings / TV settings -->
+<span class="qbtn qgear" id="qgear" role="button" aria-label="Settings"></span>
 
 <header class="top">
   <div class="top-left">
@@ -68,11 +73,10 @@
 <!-- hold OK on the clock, or the Clock quick button: the live clock drawer, drawn by app.js.
      A compact frosted card in the bottom-right corner, so the clock and its depth effect stay in view. -->
 <div class="ckbar" id="ckbar" role="dialog" aria-modal="false" aria-label="Clock">
-  <div class="ck-head"><span class="ck-title">Font &amp; Colour</span></div>
+  <div class="ck-head"><span class="ck-title" id="ck-title">Clock &amp; date</span><span class="ck-scene" id="ck-scene"></span></div>
   <div class="ck-body" id="ck-body"></div>
   <div class="ckbar-foot">
-    <span class="ckfoot-reset" id="ckbar-reset" aria-label="Reset">↺</span>
-    <span class="ckfill" id="ck-fill" aria-label="Clock fill"><span class="ckopt" data-v="glass">Glass</span><span class="ckopt" data-v="solid">Solid</span></span>
+    <span class="ckfoot-reset" id="ckbar-reset" aria-label="Reset">Reset</span>
     <span class="ckfoot-done" id="ckbar-done">✓ <span id="ckbar-done-text"></span></span>
   </div>
 </div>
@@ -101,6 +105,7 @@
 
 <script src="i18n.js"></script>
 <script src="config.js"></script>
+<script src="ambient-weather.js"></script>
 <script src="smarthome.js"></script>
 <script src="clearicon.js"></script>
 <script src="app.js"></script>

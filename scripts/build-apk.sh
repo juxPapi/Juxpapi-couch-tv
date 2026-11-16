@@ -40,7 +40,9 @@ EXTRA=""
 [ -n "${UPDATE_REPO+set}" ] && EXTRA="$EXTRA -PupdateRepo=$UPDATE_REPO"
 
 echo "Building the TV home (settings built in: $CONFIG)"
-"$GW" -p "$ROOT/tv-home/android" --no-daemon -q clean assembleRelease "-PconfigJson=$CONFIG" $EXTRA
+# Through sh: a Windows checkout does not keep the executable bit, and a fresh clone on the
+# runner would then fail with "Permission denied" (exit 126).
+sh "$GW" -p "$ROOT/tv-home/android" --no-daemon -q clean assembleRelease "-PconfigJson=$CONFIG" $EXTRA
 cp "$ROOT/tv-home/android/app/build/outputs/apk/release/app-release.apk" "$ROOT/dist/couch-tv-home.apk"
 OUT="$ROOT/dist/couch-tv-home.apk"
 
@@ -61,7 +63,7 @@ if [ -f "$ROOT/on-tv/android/settings.gradle.kts" ] || [ -f "$ROOT/on-tv/android
   fi
   if [ -f "$ROOT/remote/dist/index.html" ]; then
     echo "Building the on-TV app (option C)"
-    "$GW" -p "$ROOT/on-tv/android" --no-daemon -q clean assembleRelease
+    sh "$GW" -p "$ROOT/on-tv/android" --no-daemon -q clean assembleRelease
     cp "$ROOT/on-tv/android/app/build/outputs/apk/release/app-release.apk" "$ROOT/dist/couch-tv-ontv.apk"
     OUT="$OUT
 $ROOT/dist/couch-tv-ontv.apk"
