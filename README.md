@@ -6,9 +6,35 @@ built and waiting for its first real LG. No ads on the home screen. Open source 
 > Note for Google TV owners: 0.11 leaves the Google home and setup apps switched on. If you set
 > couch-tv up with 0.10 or older, see [If your TV loops after a restart](#if-your-tv-loops-after-a-restart).
 
-![The Night home screen](docs/screens/home-0-13.jpg)
+![The Night home screen](docs/screens/home-0-17.jpg)
 
 ## Updates
+
+**16 November 2026: a simpler dock, manual weather effects and a steadier Home button
+(0.17).**
+
+- **Dock marker is fixed.** The floating down-arrow style now ships correctly and sits below the
+  dock, instead of appearing as a small stray dot on its left curve.
+
+- **The 3-dot dock extender is gone.** When more apps are tucked away, a small floating down arrow
+  appears below the dock. Press **Down** from the bottom app row to expand it.
+- **Up from the dock reaches Settings.** The gear at the top left is now the shortcut for Home
+  settings and the rest of the TV's settings.
+- **Weather effects are manual.** In Home settings, Weather, choose **Weather effects** on or off,
+  and pick **Weather effect**: Auto, Rain, Snow, Fog, Storm or Clear. Rain or another chosen effect
+  can now stay on the home even when the current weather is clear.
+- **A cleaner clock drawer.** The position picker is now a row of round circles, the Fill options
+  are just **Glass** and **Solid**, the option tabs have more breathing room, and the focus ring is
+  a rounded square instead of a circle.
+- **The clock is one design throughout.** The old layouts are gone from the build, so time, fill,
+  position and the date all use the same simple clock face.
+- **Home presses no longer flash the screen black.** If the remote sends **Home** while couch-tv is
+  already open, it returns to the first app tile instead of clearing the page behind it.
+
+![The Night home screen, with the floating down-arrow dock](docs/screens/home-0-17.jpg)
+![The updated clock drawer](docs/screens/clock-drawer-0-17.jpg)
+![Manual weather effects over Golden hour](docs/screens/weather-effects-0-17.jpg)
+![Weather settings, with the manual effect picker](docs/screens/weather-settings-0-17.jpg)
 
 **16 November 2026: a tidier clock, weather that follows it, and Keep watching in the right place
 (0.13).**
@@ -174,10 +200,10 @@ With option A it is Android's own Watch Next list, the same for everyone on that
 
 ## Settings on the TV
 
-No computer and no `config.json` needed for the everyday settings. Press down to the dock and
-pick the gear, **Settings** (just before More apps). OK opens a small menu: **Home settings** is
-couch-tv's own list, **TV settings** is Android's own (Wi-Fi, picture, sound). The remote's own
-gear or Settings button opens the same menu ([docs/REMOTES.md](docs/REMOTES.md#the-gear-button)).
+No computer and no `config.json` needed for the everyday settings. Press the **gear** at the top
+left. OK opens a small menu: **Home settings** is couch-tv's own list, **TV settings** is
+Android's own (Wi-Fi, picture, sound). The remote's own gear or Settings button opens the same
+menu ([docs/REMOTES.md](docs/REMOTES.md#the-gear-button)).
 
 ![Home settings on the TV](docs/screens/home-settings.jpg)
 
@@ -192,8 +218,9 @@ and then closes. What you change shows when the list closes.
   Open-Meteo's, free and with no key. Each place shows what it belongs to (its municipality,
   province or county, and region), so towns with the same name can be told apart; in Italian the
   places in Italy come first, in German the places in Germany.
-- **Weather:** show or hide it, °C or °F, check every 15, 30 or 60 minutes. Open-Meteo is the only
-  weather provider for now.
+- **Weather:** show or hide it, pick the effect (**Auto**, **Rain**, **Snow**, **Fog**, **Storm**
+  or **Clear**) or let it follow the weather, choose **Sunlight colour**, in °C or °F, and check
+  every 15, 30 or 60 minutes. Open-Meteo is the only weather provider for now.
 - **Look and scenes:** Night scenes or Classic; which scenes take turns, in what order, how many
   seconds each; a 12 or 24 hour clock; glass panels and a video background (below); your own
   photos (below).

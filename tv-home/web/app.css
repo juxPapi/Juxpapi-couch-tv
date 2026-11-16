@@ -196,7 +196,9 @@ body {
 .caption span { display: block; font-size: 1.4375rem; line-height: 1.875rem; color: var(--text-2); }
 
 /* ---------- apps ---------- */
-.apps { position: absolute; left: var(--safe-x); right: var(--safe-x); top: 37.5rem; }\n.dock-arrow { position: absolute; left: 50%; bottom: -2.6rem; transform: translateX(-50%); font-size: 2.6rem; line-height: 1; color: rgba(255,255,255,0.55); opacity: 0; pointer-events: none; transition: opacity 180ms var(--ease); }\n.dock-arrow.on { opacity: 1; }
+.apps { position: absolute; left: var(--safe-x); right: var(--safe-x); top: 37.5rem; }
+.dock-arrow { position: absolute; left: 50%; bottom: -2.6rem; transform: translateX(-50%); font-size: 2.6rem; line-height: 1; color: rgba(255,255,255,0.55); opacity: 0; pointer-events: none; transition: opacity 180ms var(--ease); }
+.dock-arrow.on { opacity: 1; }
 .grid {
   display: grid; grid-template-columns: repeat(8, var(--app-w)); grid-auto-rows: var(--app-h);
   column-gap: var(--gap); row-gap: var(--app-row-gap);
