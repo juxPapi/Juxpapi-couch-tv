@@ -46,7 +46,7 @@
   var ST = {}, WX_SHOW = true, WX_F = false, WX_EVERY = 30, HIDDEN_TV = [];
   // Weather effects (ambient-weather.js): rain, snow, fog and lightning over the scene, on unless
   // switched off; sunlight colour grading, off unless switched on (Home settings, Weather).
-  var WX_AMBIENT = true, WX_SUN_GRADE = false, WX_EFFECTS = true, WX_AUTO = false, WX_EFFECT_TYPE = "auto";
+  var WX_AMBIENT = true, WX_SUN_GRADE = false, WX_EFFECTS = true, WX_EFFECT_TYPE = "auto";
   // The clock customiser (Home settings, Clock; the live drawer): what the digits look like, from
   // Home settings on this TV. Kept in ST with everything else, so it saves to localStorage at once
   // and survives a restart; ?mock=1 previews it on a computer. See applyClock() below.
@@ -214,7 +214,6 @@
     WX_EVERY = [15, 30, 60].indexOf(ST.wx_every) >= 0 ? ST.wx_every : 30;
     WX_AMBIENT = typeof ST.ambient_weather === "boolean" ? ST.ambient_weather : HOME.ambient_weather !== false;
     WX_EFFECTS = typeof ST.weather_effects === "boolean" ? ST.weather_effects : (HOME.weather_effects !== false);
-    WX_AUTO = typeof ST.weather_auto === "boolean" ? ST.weather_auto : (HOME.weather_auto === true);
     WX_EFFECT_TYPE = (typeof ST.weather_effect === "string" && ["auto","rain","snow","fog","storm","clear"].indexOf(ST.weather_effect) >= 0) ? ST.weather_effect : "auto";
     WX_SUN_GRADE = typeof ST.ambient_sun_grade === "boolean" ? ST.ambient_sun_grade : HOME.ambient_sun_grade === true;
     var mine = TV_ID || CFG.default_tv;
@@ -744,14 +743,6 @@
   }
   // The ambient weather effects follow the settings: off unless chosen, and not while the
   // weather itself is hidden.
-  function autoWeatherEffects() {
-    if (!WX_AUTO || !data.weather || data.weather.code == null) return;
-    var c = data.weather.code;
-    var wet = ([45,48,51,53,55,56,57,61,63,65,66,67,71,73,75,77,80,81,82,85,86,95,96,99].indexOf(c) >= 0);
-    WX_EFFECTS = wet;
-    ST.weather_effects = WX_EFFECTS;
-    saveSettings();
-  }
   function applyWeatherEffectType() {
     var a = window.AmbientWeather;
     if (!a) return;
@@ -783,7 +774,7 @@
     if (!NIGHT || !WX_SHOW) { updateAmbientWeather(); return Promise.resolve(); }
     var direct = OFFLINE || !!(ST.place && isFinite(ST.place.lat));
     return (direct ? weatherDirect() : api("GET", "/api/weather")).then(function (j) {
-      data.weather = j; if (WX_AUTO) autoWeatherEffects(); clock(); ambientSync();
+      data.weather = j; clock(); ambientSync();
     }, function () {});
   }
 
@@ -2122,12 +2113,6 @@
         WX_EFFECT_TYPE = opts[i];
         ST.weather_effect = WX_EFFECT_TYPE; saveSettings(); ambientSync();
       } },
-      { kind: "toggle", key: "wx-auto", label: t("wx_auto"), sub: t("wx_auto_sub"), value: WX_AUTO ? t("on") : t("off"), act: function () {
-        WX_AUTO = !WX_AUTO; ST.weather_auto = WX_AUTO; saveSettings();
-        if (WX_AUTO) autoWeatherEffects();
-        ambientSync();
-      } },
-
       { kind: "toggle", key: "wx-sun-grade", label: t("wx_sun_grade"), sub: t("wx_sun_grade_sub"), value: WX_SUN_GRADE ? t("on") : t("off"), act: function () {
         WX_SUN_GRADE = !WX_SUN_GRADE; ST.ambient_sun_grade = WX_SUN_GRADE; saveSettings(); ambientSync();
       } },

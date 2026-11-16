@@ -150,8 +150,6 @@
     wx_effect_fog: "Fog",
     wx_effect_storm: "Storm",
     wx_effect_clear: "Clear (none)",
-    wx_auto: "Automate effects",
-    wx_auto_sub: "Turn them on automatically when the weather is wet, snowy or foggy",
     wx_sun_grade: "Sunlight colour",
     wx_sun_grade_sub: "Warm dawn and golden sunset tones matched to the sun",
     wx_units: "Units",
