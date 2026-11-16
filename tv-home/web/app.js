@@ -46,7 +46,7 @@
   var ST = {}, WX_SHOW = true, WX_F = false, WX_EVERY = 30, HIDDEN_TV = [];
   // Weather effects (ambient-weather.js): rain, snow, fog and lightning over the scene, on unless
   // switched off; sunlight colour grading, off unless switched on (Home settings, Weather).
-  var WX_AMBIENT = true, WX_SUN_GRADE = false, WX_EFFECTS = true, WX_AUTO = false;
+  var WX_AMBIENT = true, WX_SUN_GRADE = false, WX_EFFECTS = true, WX_AUTO = false, WX_EFFECT_TYPE = "auto";
   // The clock customiser (Home settings, Clock; the live drawer): what the digits look like, from
   // Home settings on this TV. Kept in ST with everything else, so it saves to localStorage at once
   // and survives a restart; ?mock=1 previews it on a computer. See applyClock() below.
@@ -59,7 +59,7 @@
     ["nunito", "ck_f_nunito"], ["fraunces", "ck_f_fraunces"]];
   var CK_LAYOUTS = [["single", "ck_l_single"], ["stack", "ck_l_stack"], ["offset", "ck_l_offset"], ["tight", "ck_l_tight"]];
   var CK_ALIGNS = [["scene", "ck_a_scene"], ["left", "ck_a_left"], ["center", "ck_a_center"], ["right", "ck_a_right"], ["mid", "ck_a_mid"]];
-  var CK_FILLS = [["glass", "ck_fill_glass"], ["adaptive", "ck_fill_adaptive"], ["solid", "ck_fill_solid"], ["outline", "ck_fill_outline"]];
+  var CK_FILLS = [["glass", "ck_fill_glass"], ["solid", "ck_fill_solid"]];
   var CK_SIZES = [[0.8, "ck_sz_80"], [0.9, "ck_sz_90"], [1, "ck_sz_100"], [1.1, "ck_sz_110"], [1.2, "ck_sz_120"], [1.3, "ck_sz_130"], [1.4, "ck_sz_140"]];
   var CK_WEIGHTS = [[300, "300"], [400, "400"], [500, "500"], [600, "600"], [700, "700"], [800, "800"], [900, "900"]];
   var CK_DATES = [["above", "ck_d_above"], ["below", "ck_d_below"], ["off", "ck_d_off"], ["fixed", "ck_d_fixed"]];
@@ -215,6 +215,7 @@
     WX_AMBIENT = typeof ST.ambient_weather === "boolean" ? ST.ambient_weather : HOME.ambient_weather !== false;
     WX_EFFECTS = typeof ST.weather_effects === "boolean" ? ST.weather_effects : (HOME.weather_effects !== false);
     WX_AUTO = typeof ST.weather_auto === "boolean" ? ST.weather_auto : (HOME.weather_auto === true);
+    WX_EFFECT_TYPE = (typeof ST.weather_effect === "string" && ["auto","rain","snow","fog","storm","clear"].indexOf(ST.weather_effect) >= 0) ? ST.weather_effect : "auto";
     WX_SUN_GRADE = typeof ST.ambient_sun_grade === "boolean" ? ST.ambient_sun_grade : HOME.ambient_sun_grade === true;
     var mine = TV_ID || CFG.default_tv;
     TVCFG = (CFG.tvs || []).filter(function (t) { return t.id === mine; })[0] || (CFG.tvs || [])[0] || {};
@@ -751,15 +752,28 @@
     ST.weather_effects = WX_EFFECTS;
     saveSettings();
   }
+  function applyWeatherEffectType() {
+    var a = window.AmbientWeather;
+    if (!a) return;
+    if (!WX_EFFECTS || !WX_SHOW || !NIGHT) { a.setWeather(null, getSunPos()); return; }
+    if (WX_EFFECT_TYPE !== "auto") {
+      // force the chosen effect: synthesize a weather code
+      var code = WX_EFFECT_TYPE === "rain" ? 63 : WX_EFFECT_TYPE === "snow" ? 73 : WX_EFFECT_TYPE === "fog" ? 45 : WX_EFFECT_TYPE === "storm" ? 95 : 0;
+      a.setWeather({ code: code, temp: (data.weather && data.weather.temp) || 20 }, getSunPos());
+      return;
+    }
+    updateAmbientWeather();
+  }
   function ambientSync() {
     var a = window.AmbientWeather;
     if (!a) return;
     a.setEnabled(WX_EFFECTS && WX_SHOW && NIGHT);
     a.setSunGradeEnabled(WX_SUN_GRADE && NIGHT);
-    updateAmbientWeather();
+    applyWeatherEffectType();
   }
   function updateAmbientWeather() {
     if (!window.AmbientWeather) return;
+    if (WX_EFFECT_TYPE !== "auto") { applyWeatherEffectType(); return; }
     window.AmbientWeather.setWeather(WX_SHOW ? data.weather : null, getSunPos());
   }
 
@@ -1461,7 +1475,7 @@
   }
   // The small blue dot: an app not opened yet, or (on the gear tile) a new couch-tv release.
   function dotHTML(it) {
-    if (isNew(it.package)) return '<i class="dot" aria-label="' + esc(t("new_app")) + '"></i>';
+    if (false && isNew(it.package)) return '<i class="dot" aria-label="' + esc(t("new_app")) + '"></i>';
     if (it.kind === "gear" && updReady()) return '<i class="dot" aria-label="' + esc(t("upd_gear", { v: UPD.latest })) + '"></i>';
     return "";
   }
@@ -1695,9 +1709,7 @@
           else if (dx < 0 && g <= 0) g = gridEls.length - 1;
         }
       } else if (dy < 0 && row === 0) {
-        if (cards.length) zone = "shelf";
-        else if (npReach()) zone = "np";
-        else if (hasQuick()) zone = "quick";   // offline the sleep and picture buttons are hidden
+        zone = "qgear";
       } else if (dy < 0) {
         g -= GRID_COLS;
       } else if (!expanded && dy > 0 && row === lastRow) {
@@ -2097,6 +2109,18 @@
       } },
       { kind: "toggle", key: "wx-effects", label: t("wx_effects"), sub: t("wx_effects_sub"), value: WX_EFFECTS ? t("on") : t("off"), act: function () {
         WX_EFFECTS = !WX_EFFECTS; ST.weather_effects = WX_EFFECTS; saveSettings(); ambientSync();
+      } },
+      { kind: "cycle", key: "wx-effect-type", label: t("wx_effect_type"), value: t("wx_effect_" + WX_EFFECT_TYPE), act: function () {
+        var opts = ["auto","rain","snow","fog","storm","clear"];
+        var i = opts.indexOf(WX_EFFECT_TYPE);
+        WX_EFFECT_TYPE = opts[(i + 1) % opts.length];
+        ST.weather_effect = WX_EFFECT_TYPE; saveSettings(); ambientSync();
+      }, adjust: function (d) {
+        var opts = ["auto","rain","snow","fog","storm","clear"];
+        var i = opts.indexOf(WX_EFFECT_TYPE);
+        i = (i + d + opts.length) % opts.length;
+        WX_EFFECT_TYPE = opts[i];
+        ST.weather_effect = WX_EFFECT_TYPE; saveSettings(); ambientSync();
       } },
       { kind: "toggle", key: "wx-auto", label: t("wx_auto"), sub: t("wx_auto_sub"), value: WX_AUTO ? t("on") : t("off"), act: function () {
         WX_AUTO = !WX_AUTO; ST.weather_auto = WX_AUTO; saveSettings();
@@ -2972,11 +2996,9 @@
     }
     if (k === "pos") {
       var pi = ckIndex(CK_ALIGNS, ck("clock_align"));
-      return '<div class="' + cls + '"><span class="cklab cklab-big">' + esc(t("ck_align")) + '</span><span class="ckopts ckaligns">' +
-        CK_ALIGNS.map(function (o, oi) {
-          return '<span class="ckopt' + (oi === pi ? " on" : "") + (focus && CKB.col === oi ? " sel" : "") + '">' +
-            esc(t(o[1])) + "</span>";
-        }).join("") + "</span></div>";
+      return '<div class="' + cls + ' ckposrow">' + CK_ALIGNS.map(function (o, oi) {
+        return '<span class="ckdot' + (oi === pi ? " on" : "") + (focus && CKB.col === oi ? " sel" : "") + '" title="' + esc(t(o[1])) + '"></span>';
+      }).join("") + "</div>";
     }
     if (k === "date") {
       return '<div class="' + cls + '"><span class="cklab cklab-big">' + esc(t("ck_date")) + '</span><span class="ckopts ckdates">' +

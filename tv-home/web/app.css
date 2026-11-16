@@ -1101,7 +1101,7 @@ html.has-pointer.glass .ssec:hover {
 .cksw.sel { outline: 0.0625rem solid #fff; outline-offset: 0.13rem; transform: scale(1.06); }
 .ckpill { margin-left: auto; display: flex; gap: 0.2rem; padding: 0.16rem; border-radius: 1.15rem; background: rgba(0, 0, 0, 0.22); }
 .ckpill .ckopt { min-width: 4.1rem; height: 1.65rem; padding: 0 0.5rem; border-radius: 0.9rem; font-size: 0.8rem; }
-.ckopts { margin-left: auto; display: flex; gap: 0.2rem; padding: 0.14rem; border-radius: 0.8rem; background: rgba(0, 0, 0, 0.22); }
+.ckopts { margin-left: auto; display: flex; gap: 0.55rem; padding: 0.14rem 0.5rem; border-radius: 0.8rem; background: rgba(0, 0, 0, 0.22); }
 .ckopt {
   display: flex; align-items: center; justify-content: center; min-width: 2.5rem; height: 1.75rem;
   padding: 0 0.5rem; border-radius: 0.58rem; font-size: 0.8rem; font-weight: 600;
@@ -1115,6 +1115,10 @@ html.has-pointer.glass .ssec:hover {
 .ckdots i { width: 0.75rem; height: 0.75rem; border-radius: 50%; background: rgba(255, 255, 255, 0.28); }
 .ckdots i.on { background: #fff; box-shadow: 0 0 0.35rem rgba(255, 255, 255, 0.7); }
 .ckdots i.sel { outline: 0.0625rem solid #fff; outline-offset: 0.16rem; }
+.ckposrow { display: flex; gap: 1.1rem; align-items: center; justify-content: center; padding: 0.4rem 0; }
+.ckdot { width: 1.5rem; height: 1.5rem; border-radius: 50%; background: rgba(255,255,255,0.22); border: 0.12rem solid rgba(255,255,255,0.35); transition: all 160ms var(--ease); }
+.ckdot.on { background: #fff; box-shadow: 0 0 0.4rem rgba(255,255,255,0.7); }
+.ckdot.sel { outline: 0.12rem solid #fff; outline-offset: 0.2rem; }
 .ckswitch { margin-left: auto; position: relative; width: 3.4rem; height: 1.9rem; border-radius: 0.95rem; background: rgba(0, 0, 0, 0.35); transition: background 160ms var(--ease); }
 .ckswitch i { position: absolute; top: 0.22rem; left: 0.22rem; width: 1.46rem; height: 1.46rem; border-radius: 50%; background: rgba(255, 255, 255, 0.78); transition: transform 180ms var(--ease), background 160ms var(--ease); }
 .ckswitch.on { background: #34c759; }
