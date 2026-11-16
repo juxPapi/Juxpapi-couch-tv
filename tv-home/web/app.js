@@ -46,7 +46,7 @@
   var ST = {}, WX_SHOW = true, WX_F = false, WX_EVERY = 30, HIDDEN_TV = [];
   // Weather effects (ambient-weather.js): rain, snow, fog and lightning over the scene, on unless
   // switched off; sunlight colour grading, off unless switched on (Home settings, Weather).
-  var WX_AMBIENT = true, WX_SUN_GRADE = false;
+  var WX_AMBIENT = true, WX_SUN_GRADE = false, WX_EFFECTS = true, WX_AUTO = false;
   // The clock customiser (Home settings, Clock; the live drawer): what the digits look like, from
   // Home settings on this TV. Kept in ST with everything else, so it saves to localStorage at once
   // and survives a restart; ?mock=1 previews it on a computer. See applyClock() below.
@@ -213,6 +213,8 @@
     WX_F = ST.wx_unit === "f";
     WX_EVERY = [15, 30, 60].indexOf(ST.wx_every) >= 0 ? ST.wx_every : 30;
     WX_AMBIENT = typeof ST.ambient_weather === "boolean" ? ST.ambient_weather : HOME.ambient_weather !== false;
+    WX_EFFECTS = typeof ST.weather_effects === "boolean" ? ST.weather_effects : (HOME.weather_effects !== false);
+    WX_AUTO = typeof ST.weather_auto === "boolean" ? ST.weather_auto : (HOME.weather_auto === true);
     WX_SUN_GRADE = typeof ST.ambient_sun_grade === "boolean" ? ST.ambient_sun_grade : HOME.ambient_sun_grade === true;
     var mine = TV_ID || CFG.default_tv;
     TVCFG = (CFG.tvs || []).filter(function (t) { return t.id === mine; })[0] || (CFG.tvs || [])[0] || {};
@@ -670,7 +672,7 @@
   }
   document.addEventListener("visibilitychange", function () {
     if (document.hidden) pauseVideo();
-    else { startVideo(); if (window.AmbientWeather) window.AmbientWeather.resume(); }
+    else { startVideo(); if (window.AmbientWeather) window.AmbientWeather.resume(); try { goHome(); } catch (e) {} }
   });
 
   function showScene(i) {
@@ -741,10 +743,18 @@
   }
   // The ambient weather effects follow the settings: off unless chosen, and not while the
   // weather itself is hidden.
+  function autoWeatherEffects() {
+    if (!WX_AUTO || !data.weather || data.weather.code == null) return;
+    var c = data.weather.code;
+    var wet = ([45,48,51,53,55,56,57,61,63,65,66,67,71,73,75,77,80,81,82,85,86,95,96,99].indexOf(c) >= 0);
+    WX_EFFECTS = wet;
+    ST.weather_effects = WX_EFFECTS;
+    saveSettings();
+  }
   function ambientSync() {
     var a = window.AmbientWeather;
     if (!a) return;
-    a.setEnabled(WX_AMBIENT && WX_SHOW && NIGHT);
+    a.setEnabled(WX_EFFECTS && WX_SHOW && NIGHT);
     a.setSunGradeEnabled(WX_SUN_GRADE && NIGHT);
     updateAmbientWeather();
   }
@@ -759,7 +769,7 @@
     if (!NIGHT || !WX_SHOW) { updateAmbientWeather(); return Promise.resolve(); }
     var direct = OFFLINE || !!(ST.place && isFinite(ST.place.lat));
     return (direct ? weatherDirect() : api("GET", "/api/weather")).then(function (j) {
-      data.weather = j; clock(); updateAmbientWeather();
+      data.weather = j; if (WX_AUTO) autoWeatherEffects(); clock(); ambientSync();
     }, function () {});
   }
 
@@ -1211,7 +1221,7 @@
     var list = expanded ? arr.items.slice() : arr.items.slice(0, arr.line);
     if (expanded && store) list.unshift({ kind: "app", store: true, name: t("app_store"), package: STORE_PKG, id: store.id });
     list = list.concat(toolItems());
-    if (!expanded) list.push(moreItem());
+    // the 3-dot "More apps" tile is gone: a floating down arrow expands the dock instead
     return list;
   }
 
@@ -1469,6 +1479,9 @@
     gridEls = Array.prototype.slice.call($("grid").children);
     clearIcons();
     renderHint();
+    var _arr = arrangeItems();
+    var _arrow = $("dock-arrow");
+    if (_arrow) _arrow.classList.toggle("on", !expanded && _arr.items.length > _arr.line);
   }
 
   // Glass app icons, Apple's clear style (#25): each icon's glyph without its background
@@ -1687,6 +1700,8 @@
         else if (hasQuick()) zone = "quick";   // offline the sleep and picture buttons are hidden
       } else if (dy < 0) {
         g -= GRID_COLS;
+      } else if (!expanded && dy > 0 && row === lastRow) {
+        expanded = true; renderGrid(); g = Math.min(g, gridEls.length - 1); paintFocus(); return;
       } else if (row < lastRow) {
         g = Math.min(g + GRID_COLS, gridEls.length - 1);
       }
@@ -2080,9 +2095,15 @@
         ambientSync();
         clock();
       } },
-      { kind: "toggle", key: "wx-ambient", label: t("wx_ambient"), sub: t("wx_ambient_sub"), value: WX_AMBIENT ? t("on") : t("off"), act: function () {
-        WX_AMBIENT = !WX_AMBIENT; ST.ambient_weather = WX_AMBIENT; saveSettings(); ambientSync();
+      { kind: "toggle", key: "wx-effects", label: t("wx_effects"), sub: t("wx_effects_sub"), value: WX_EFFECTS ? t("on") : t("off"), act: function () {
+        WX_EFFECTS = !WX_EFFECTS; ST.weather_effects = WX_EFFECTS; saveSettings(); ambientSync();
       } },
+      { kind: "toggle", key: "wx-auto", label: t("wx_auto"), sub: t("wx_auto_sub"), value: WX_AUTO ? t("on") : t("off"), act: function () {
+        WX_AUTO = !WX_AUTO; ST.weather_auto = WX_AUTO; saveSettings();
+        if (WX_AUTO) autoWeatherEffects();
+        ambientSync();
+      } },
+
       { kind: "toggle", key: "wx-sun-grade", label: t("wx_sun_grade"), sub: t("wx_sun_grade_sub"), value: WX_SUN_GRADE ? t("on") : t("off"), act: function () {
         WX_SUN_GRADE = !WX_SUN_GRADE; ST.ambient_sun_grade = WX_SUN_GRADE; saveSettings(); ambientSync();
       } },
@@ -2886,11 +2907,10 @@
   var CK_SWATCH = CK_COLOURS.map(function (o) {
     return [o[0], "ck_sw_" + o[0], o[2] || "linear-gradient(135deg,#9fc4ff,#ffc4d8 55%,#ffe0a8)"];
   });
-  var CK_ROWS = ["fonts", "layout", "sliders", "swatches", "fill", "pos", "date", "shadow"];
+  var CK_ROWS = ["fonts", "sliders", "swatches", "fill", "pos", "date", "shadow"];
   var CKB = { open: false, row: 0, col: 0, grab: false, foot: false, fi: 0, text: 0 };
   function ckRowLen(k) {
     if (k === "fonts") return CK_FONTS.length;
-    if (k === "layout") return CK_LAYOUTS.length;
     if (k === "sliders") return 2;
     if (k === "swatches") return CK_SWATCH.length;
     if (k === "fill") return CK_FILLS.length;
@@ -2905,7 +2925,6 @@
   // Where the cursor starts when a row gets the focus: on the choice that is already set.
   function ckRowStart(k) {
     if (k === "fonts") return ckIndex(CK_FONTS, ck("clock_font"));
-    if (k === "layout") return ckIndex(CK_LAYOUTS, ck("clock_layout"));
     if (k === "swatches") return ckIndex(CK_SWATCH, ck("clock_color"));
     if (k === "fill") return ckIndex(CK_FILLS, ck("clock_fill"));
     if (k === "pos") return ckIndex(CK_ALIGNS, ck("clock_align"));
@@ -2927,13 +2946,6 @@
         return '<span class="ckf' + (ck("clock_font") === f[0] ? " on" : "") + (focus && CKB.col === fi ? " sel" : "") + '"' +
           ' style="font-family:' + CK_FACE[f[0]] + '">12</span>';
       }).join("") + "</div>";
-    }
-    if (k === "layout") {
-      return '<div class="' + cls + '"><span class="cklab cklab-big">' + esc(t("ck_layout")) + '</span><span class="ckopts cklayouts">' +
-        CK_LAYOUTS.map(function (o, oi) {
-          return '<span class="ckopt' + (String(o[0]) === String(ck("clock_layout")) ? " on" : "") +
-            (focus && CKB.col === oi ? " sel" : "") + '">' + esc(t(o[1])) + "</span>";
-        }).join("") + "</span></div>";
     }
     if (k === "sliders") {
       var sp = ckSizePct(), wp = (ckIndex(CK_WEIGHTS, ck("clock_weight")) / (CK_WEIGHTS.length - 1)) * 100;
@@ -3033,10 +3045,7 @@
     if (!dx) return;
     var k = CK_ROWS[CKB.row];
     if (k === "fonts") CKB.col = Math.max(0, Math.min(CK_FONTS.length - 1, CKB.col + dx));
-    else if (k === "layout") {
-      CKB.col = (CKB.col + (dx > 0 ? 1 : -1) + CK_LAYOUTS.length) % CK_LAYOUTS.length;
-      setClock("clock_layout", CK_LAYOUTS[CKB.col][0]);
-    } else if (k === "swatches") CKB.col = Math.max(0, Math.min(CK_SWATCH.length - 1, CKB.col + dx));
+    else if (k === "swatches") CKB.col = Math.max(0, Math.min(CK_SWATCH.length - 1, CKB.col + dx));
     else if (k === "sliders") {
       if (CKB.grab) {
         if (CKB.col === 0) {
@@ -3072,7 +3081,6 @@
     }
     var k = CK_ROWS[CKB.row];
     if (k === "fonts") { setClock("clock_font", CK_FONTS[CKB.col][0]); return; }
-    if (k === "layout") { setClock("clock_layout", CK_LAYOUTS[CKB.col][0]); return; }
     if (k === "swatches") { setClock("clock_color", CK_SWATCH[CKB.col][0]); return; }
     if (k === "sliders") { CKB.grab = !CKB.grab; renderCkbar(); return; }
     if (k === "fill") { setClock("clock_fill", CK_FILLS[CKB.col][0]); return; }
@@ -3092,7 +3100,6 @@
       rows.push({ kind: "check", key: "ck-" + key, label: t(label), checked: !!ck(key),
         act: function () { setClock(key, !ck(key)); } });
     }
-    cycle("clock_layout", "ck_layout", CK_LAYOUTS);
     cycle("clock_font", "ck_font", CK_FONTS);
     cycle("clock_weight", "ck_weight", CK_WEIGHTS);
     cycle("clock_scale", "ck_size", CK_SIZES);

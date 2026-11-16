@@ -100,7 +100,7 @@
             android:exported="true"
             android:launchMode="singleTask"
             android:stateNotNeeded="true"
-            android:clearTaskOnLaunch="true"
+            android:clearTaskOnLaunch="false"
             android:excludeFromRecents="true"
             android:resizeableActivity="false"
             android:screenOrientation="landscape"

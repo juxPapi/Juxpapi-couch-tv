@@ -141,8 +141,10 @@
     loc_note: "Sets the weather's place and time zone. A town or suburb is enough, never a home address. Place search by Open-Meteo.",
 
     wx_show: "Show the weather",
-    wx_ambient: "Weather effects",
-    wx_ambient_sub: "Rain, snow, fog and lightning over the scene",
+    wx_effects: "Weather effects",
+    wx_effects_sub: "Rain, snow, fog and lightning over the scene",
+    wx_auto: "Automate effects",
+    wx_auto_sub: "Turn them on automatically when the weather is wet, snowy or foggy",
     wx_sun_grade: "Sunlight colour",
     wx_sun_grade_sub: "Warm dawn and golden sunset tones matched to the sun",
     wx_units: "Units",

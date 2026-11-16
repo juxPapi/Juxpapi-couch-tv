@@ -76,7 +76,6 @@ class MainActivity : Activity() {
     private var offline = false   // showing the saved copy because the computer is off
     private var resumed = false
     private val retry = Runnable { if (!pageReady || offline) connect() }
-
     private val prefs by lazy { getSharedPreferences("home", MODE_PRIVATE) }
 
     override fun onCreate(savedInstanceState: Bundle?) {
