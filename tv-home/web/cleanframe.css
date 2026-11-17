@@ -1,0 +1,981 @@
+@font-face {
+  font-family: "Manrope Clean";
+  src: url("cleanframe/manrope.woff2") format("woff2");
+  font-weight: 200 800;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* ================= base ================= */
+html.cleanframe,
+html.cleanframe body {
+  overflow: hidden;
+  background: #000;
+}
+html.cleanframe body > *:not(.cleanframe-stage):not(.ckbar):not(#sleep-menu):not(#inputs-pop) {
+  display: none !important;
+}
+html.cleanframe body > .ckbar.on {
+  display: flex !important;
+  z-index: 20;
+}
+/* the Night home's floating menus move to body level when the skin starts; they show above the skin */
+html.cleanframe body > #sleep-menu.on {
+  display: flex !important;
+  position: fixed !important;
+  top: 5.25rem !important;
+  right: 2rem !important;
+  z-index: 40;
+}
+html.cleanframe body > #inputs-pop.on {
+  display: block !important;
+  z-index: 40;
+}
+/* couch-tv's own Home settings is drawn above the skin by app.js. */
+html.cleanframe body > #settings.on {
+  display: grid !important;
+  z-index: 60;
+}
+
+.cleanframe-stage,
+.cleanframe-stage * {
+  box-sizing: border-box;
+}
+.cleanframe-stage {
+  display: block !important;
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 1;
+  width: 1920px;
+  height: 1080px;
+  overflow: hidden;
+  background: #111;
+  color: #f7f3ea;
+  font-family: "Manrope Clean", Arial, sans-serif;
+  transform-origin: 0 0;
+  -webkit-user-select: none;
+  user-select: none;
+}
+.cleanframe-stage button {
+  margin: 0;
+  font-family: inherit;
+  color: inherit;
+  cursor: default;
+  -webkit-tap-highlight-color: transparent;
+}
+.cleanframe-stage button:focus {
+  outline: none;
+}
+
+.cleanframe-photo {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 1920px;
+  height: 1080px;
+  object-fit: cover;
+  object-position: 50% 50%;
+}
+.cleanframe-scrim {
+  position: absolute;
+  left: 0;
+  top: 520px;
+  width: 1920px;
+  height: 560px;
+  background: linear-gradient(to bottom, rgba(4, 10, 12, 0), rgba(4, 10, 12, .38) 72%, rgba(4, 10, 12, .54));
+  pointer-events: none;
+}
+.cleanframe-shade {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 1920px;
+  height: 310px;
+  background: linear-gradient(to bottom, rgba(4, 10, 12, .36), rgba(4, 10, 12, .14) 150px, rgba(4, 10, 12, 0));
+  pointer-events: none;
+}
+
+/* ================= top left: time + Art Mode ================= */
+.cleanframe-caption {
+  position: absolute;
+  left: 112px;
+  top: 62px;
+  z-index: 4;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  transition: opacity .16s linear;
+}
+#cleanframe-time {
+  font-size: 48px;
+  line-height: 64px;
+  font-weight: 500;
+  letter-spacing: -1.5px;
+  font-variant-numeric: tabular-nums;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, .32);
+}
+.cleanframe-art-btn {
+  height: 52px;
+  padding: 0 20px 0 16px;
+  border: 1px solid rgba(255, 255, 255, .16);
+  border-radius: 26px;
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  background: linear-gradient(180deg, rgba(16, 21, 23, .46), rgba(10, 14, 16, .38));
+  -webkit-backdrop-filter: blur(16px) saturate(130%);
+  backdrop-filter: blur(16px) saturate(130%);
+  color: rgba(247, 243, 234, .92);
+  font-size: 20px;
+  line-height: 26px;
+  font-weight: 500;
+  letter-spacing: .1px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, .16), inset 0 1px 0 rgba(255, 255, 255, .14);
+  transition: background .14s linear, color .14s linear, transform .14s linear;
+}
+.cleanframe-art-btn svg {
+  width: 24px;
+  height: 24px;
+  flex: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.cleanframe-art-btn.is-focus {
+  background: #f5f4f0;
+  color: #101616;
+  border-color: rgba(255, 255, 255, .6);
+  box-shadow: 0 10px 26px rgba(0, 0, 0, .26);
+  transform: translateY(-1px);
+}
+
+/* ================= top right: quick controls ================= */
+.cleanframe-utils {
+  position: absolute;
+  right: 112px;
+  top: 62px;
+  z-index: 4;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  transition: opacity .16s linear;
+}
+.cleanframe-utility {
+  width: 64px;
+  height: 64px;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, .15);
+  border-radius: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(180deg, rgba(16, 21, 23, .48), rgba(10, 14, 16, .4));
+  -webkit-backdrop-filter: blur(16px) saturate(130%);
+  backdrop-filter: blur(16px) saturate(130%);
+  color: #f6f1e7;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, .16), inset 0 1px 0 rgba(255, 255, 255, .14);
+  transition: background .14s linear, color .14s linear, transform .14s linear, opacity .14s linear;
+}
+.cleanframe-utility svg {
+  width: 30px;
+  height: 30px;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.cleanframe-utility.is-focus {
+  background: #f5f4f0;
+  color: #101616;
+  border-color: rgba(255, 255, 255, .6);
+  box-shadow: 0 10px 26px rgba(0, 0, 0, .26);
+  transform: translateY(-1px);
+}
+
+/* ================= dock ================= */
+.cleanframe-dock {
+  position: absolute;
+  /* 5 tiles x 288px + 4 gaps x 12px = 1488px, centred on the 1920px stage. */
+  left: 216px;
+  top: 736px;
+  z-index: 2;
+  width: 1488px;
+  height: 232px;
+  overflow: hidden;
+  border-radius: 48px;
+  background: linear-gradient(180deg, rgba(20, 24, 26, .34), rgba(9, 12, 14, .3));
+  -webkit-backdrop-filter: blur(30px) saturate(128%);
+  backdrop-filter: blur(30px) saturate(128%);
+  box-shadow: 0 20px 48px rgba(0, 0, 0, .12), inset 0 1px 0 rgba(255, 255, 255, .22), inset 0 0 0 1px rgba(255, 255, 255, .06);
+  transition: opacity .16s linear;
+}
+/* Older WebViews without backdrop-filter still get a readable plate. */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .cleanframe-dock { background: rgba(9, 13, 15, .62); }
+}
+.cleanframe-stage.is-grid .cleanframe-caption,
+.cleanframe-stage.is-grid .cleanframe-utils,
+.cleanframe-stage.is-grid .cleanframe-dock,
+.cleanframe-stage.is-settings .cleanframe-caption,
+.cleanframe-stage.is-settings .cleanframe-utils,
+.cleanframe-stage.is-settings .cleanframe-dock {
+  opacity: 0;
+  pointer-events: none;
+}
+.cleanframe-custom-wall .cleanframe-dock {
+  background: linear-gradient(180deg, rgba(16, 20, 22, .4), rgba(7, 10, 12, .38));
+}
+.cleanframe-dock-scroll {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  overflow: hidden;
+}
+.cleanframe-track {
+  display: flex;
+  gap: 12px;
+  height: 100%;
+  padding: 0;
+  align-items: stretch;
+  transition: transform .18s cubic-bezier(.2, .7, .2, 1);
+  will-change: transform;
+}
+.cleanframe-tile {
+  position: relative;
+  flex: 0 0 288px;
+  width: 288px;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  border-radius: 32px;
+  background: transparent;
+  color: #fff;
+  opacity: .84;
+  transition: opacity .14s linear, transform .16s cubic-bezier(.2, .7, .2, 1);
+}
+/* The glass sits flush with the tile, so the focused tile fills the dock edge to edge. */
+.cleanframe-tile::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  border-radius: inherit;
+  background: linear-gradient(170deg, rgba(255, 255, 255, .28), rgba(255, 255, 255, .09) 58%, rgba(255, 255, 255, .13));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .3), inset 0 0 0 1px rgba(255, 255, 255, .06);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .14s linear;
+}
+.cleanframe-tile.is-focus {
+  opacity: 1;
+}
+.cleanframe-tile.is-focus::before {
+  opacity: 1;
+}
+.cleanframe-tile.is-lifted {
+  z-index: 2;
+  opacity: 1;
+  transform: translateY(-8px) scale(1.015);
+}
+.cleanframe-tile.is-lifted::before {
+  opacity: 1;
+  background: linear-gradient(170deg, rgba(255, 255, 255, .4), rgba(255, 255, 255, .17) 58%, rgba(255, 255, 255, .2));
+  box-shadow: 0 18px 34px rgba(0, 0, 0, .3), inset 0 1px 0 rgba(255, 255, 255, .42);
+}
+.cleanframe-mark {
+  position: absolute;
+  left: 74px;
+  top: 34px;
+  width: 140px;
+  height: 108px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+}
+.cleanframe-mark img.icon-mark,
+.cleanframe-mark svg.icon-mark {
+  width: 100px;
+  height: 100px;
+  object-fit: contain;
+  /* A soft blurred shadow that follows the icon's own shape. */
+  filter: drop-shadow(0 5px 10px rgba(0, 0, 0, .45)) drop-shadow(0 16px 26px rgba(0, 0, 0, .28));
+}
+.cleanframe-mark .monogram {
+  width: 100px;
+  height: 100px;
+  border-radius: 32px;
+  border: 3px solid rgba(255, 255, 255, .34);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 36px;
+  font-weight: 600;
+  letter-spacing: .03em;
+  box-shadow: 0 5px 10px rgba(0, 0, 0, .4), 0 16px 26px rgba(0, 0, 0, .25);
+}
+.cleanframe-name {
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  top: 148px;
+  text-align: center;
+  font-size: 30px;
+  line-height: 40px;
+  font-weight: 500;
+  letter-spacing: -.3px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cleanframe-move {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  z-index: 2;
+  width: 40px;
+  height: 40px;
+  border-radius: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(8, 12, 14, .62);
+  border: 1px solid rgba(255, 255, 255, .18);
+  color: #fff;
+  opacity: 0;
+  transition: opacity .12s linear;
+}
+.cleanframe-move svg {
+  width: 24px;
+  height: 24px;
+  stroke: currentColor;
+  stroke-width: 2;
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.cleanframe-tile.is-lifted .cleanframe-move {
+  opacity: 1;
+}
+
+/* ================= down arrow ================= */
+.cleanframe-down-arrow {
+  position: absolute;
+  left: 50%;
+  top: 992px;
+  z-index: 3;
+  height: 52px;
+  padding: 0 22px 0 18px;
+  border: 1px solid rgba(255, 255, 255, .16);
+  border-radius: 26px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  background: linear-gradient(180deg, rgba(16, 21, 23, .46), rgba(10, 14, 16, .38));
+  -webkit-backdrop-filter: blur(16px) saturate(130%);
+  backdrop-filter: blur(16px) saturate(130%);
+  color: rgba(246, 241, 231, .92);
+  font-size: 20px;
+  font-weight: 500;
+  letter-spacing: .2px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, .2), inset 0 1px 0 rgba(255, 255, 255, .18);
+  opacity: 0;
+  transform: translateX(-50%) translateY(-6px);
+  pointer-events: none;
+  transition: opacity .16s linear, transform .16s cubic-bezier(.2, .7, .2, 1), background .16s linear;
+}
+.cleanframe-down-arrow.is-on {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+  pointer-events: auto;
+}
+.cleanframe-down-arrow:hover,
+.cleanframe-down-arrow:focus-visible {
+  background: rgba(245, 244, 240, .24);
+  color: #fff;
+  outline: none;
+}
+.cleanframe-down-arrow svg {
+  width: 22px;
+  height: 22px;
+  stroke: currentColor;
+  stroke-width: 2;
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.cleanframe-stage.is-grid .cleanframe-down-arrow,
+.cleanframe-stage.is-art .cleanframe-down-arrow,
+.cleanframe-stage.is-settings .cleanframe-down-arrow {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.cleanframe-status {
+  position: absolute;
+  left: 50%;
+  bottom: 176px;
+  z-index: 5;
+  transform: translateX(-50%);
+  padding: 8px 18px;
+  border-radius: 24px;
+  background: rgba(10, 16, 20, .86);
+  border: 1px solid rgba(255, 255, 255, .1);
+  color: #f4f4f1;
+  font-size: 18px;
+  line-height: 26px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .12s linear;
+}
+.cleanframe-status.is-on { opacity: 1; }
+
+/* ================= all apps ================= */
+.cleanframe-grid {
+  display: none;
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: 8;
+  width: 1920px;
+  height: 1080px;
+  padding: 86px 112px 72px;
+  background: rgba(7, 11, 13, .95);
+}
+.cleanframe-grid.is-open {
+  display: block;
+  animation: cleanframe-grid-in .22s cubic-bezier(.2, .7, .2, 1) both;
+}
+@keyframes cleanframe-grid-in {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.cleanframe-grid-title {
+  margin: 0 0 36px;
+  font-size: 56px;
+  line-height: 68px;
+  font-weight: 500;
+  letter-spacing: -1.3px;
+}
+.cleanframe-grid-body {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 28px 24px;
+}
+.cleanframe-grid-item {
+  height: 148px;
+  padding: 12px 10px 14px;
+  border: 0;
+  border-radius: 24px;
+  background: rgba(255, 255, 255, .06);
+  color: #f4f4f1;
+  opacity: .72;
+}
+.cleanframe-grid-item.is-focus {
+  opacity: 1;
+  background: rgba(255, 255, 255, .16);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .2);
+}
+.cleanframe-grid-item .cleanframe-mark {
+  position: static;
+  width: 100%;
+  height: 82px;
+}
+.cleanframe-grid-item .cleanframe-mark img.icon-mark,
+.cleanframe-grid-item .cleanframe-mark svg.icon-mark {
+  width: 62px;
+  height: 62px;
+}
+.cleanframe-grid-item .cleanframe-name {
+  position: static;
+  line-height: 28px;
+  font-size: 17px;
+  letter-spacing: 0;
+}
+.cleanframe-back {
+  position: absolute;
+  left: 112px;
+  bottom: 58px;
+  color: #f4f4f1;
+  font-size: 22px;
+  opacity: .7;
+}
+
+/* ================= Art Mode ================= */
+.cleanframe-art {
+  display: none;
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: 12;
+  width: 1920px;
+  height: 1080px;
+  overflow: hidden;
+  background: #000;
+}
+.cleanframe-stage.is-art .cleanframe-art { display: block; }
+.cleanframe-art-photo {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 1920px;
+  height: 1080px;
+  object-fit: cover;
+  object-position: 50% 50%;
+  animation: cleanframe-art-show 1.2s ease both;
+}
+@keyframes cleanframe-art-show {
+  from { opacity: 0; transform: scale(1.02); }
+  to { opacity: 1; transform: scale(1.05); }
+}
+.cleanframe-art-shade {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 320px;
+  background: linear-gradient(to bottom, transparent, rgba(0, 0, 0, .72));
+  pointer-events: none;
+}
+.cleanframe-art-caption {
+  position: absolute;
+  left: 112px;
+  bottom: 74px;
+  color: #f4f4f1;
+  font-size: 32px;
+  font-weight: 500;
+  letter-spacing: -.4px;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, .5);
+}
+.cleanframe-art-title {
+  position: absolute;
+  left: 112px;
+  top: 70px;
+  color: rgba(244, 244, 241, .76);
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, .5);
+}
+.cleanframe-art-controls {
+  position: absolute;
+  right: 112px;
+  bottom: 74px;
+  color: rgba(244, 244, 241, .58);
+  font-size: 18px;
+  opacity: 0;
+  transition: opacity .16s linear;
+}
+.cleanframe-art-controls.is-on { opacity: 1; }
+.cleanframe-stage.is-art .cleanframe-caption,
+.cleanframe-stage.is-art .cleanframe-dock,
+.cleanframe-stage.is-art .cleanframe-utils,
+.cleanframe-stage.is-art .cleanframe-down-arrow,
+.cleanframe-stage.is-art .cleanframe-grid,
+.cleanframe-stage.is-art .cleanframe-status {
+  display: none !important;
+}
+
+/* ================= CleanFrame settings sheet ================= */
+.cleanframe-settings {
+  display: none;
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: 16;
+  width: 1920px;
+  height: 1080px;
+  overflow: hidden;
+  background: #0f1416;
+  color: #f6f1e7;
+}
+.cleanframe-settings.is-open {
+  display: block;
+  animation: cfs-in .18s ease both;
+}
+@keyframes cfs-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.cfs-bg {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 1920px;
+  height: 1080px;
+  object-fit: cover;
+  object-position: 50% 50%;
+}
+.cfs-veil {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 1920px;
+  height: 1080px;
+  background:
+    radial-gradient(ellipse 1300px 620px at 24% 24%, rgba(8, 12, 14, .58), rgba(8, 12, 14, .78) 70%),
+    linear-gradient(180deg, rgba(8, 12, 14, .72), rgba(8, 12, 14, .84));
+  pointer-events: none;
+}
+.cfs-home,
+.cfs-detail {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 1920px;
+  height: 1080px;
+}
+.cfs-title {
+  margin: 0;
+  position: absolute;
+  left: 140px;
+  top: 84px;
+  font-size: 56px;
+  line-height: 68px;
+  font-weight: 500;
+  letter-spacing: -1.6px;
+}
+.cfs-list {
+  position: absolute;
+  left: 140px;
+  top: 214px;
+  width: 940px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.cfs-group {
+  width: 100%;
+  min-height: 92px;
+  padding: 12px 26px;
+  border: 0;
+  border-radius: 20px;
+  display: flex;
+  align-items: center;
+  background: rgba(255, 255, 255, .045);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .055);
+  color: #f6f1e7;
+  text-align: left;
+  transition: background .14s linear, color .14s linear;
+}
+.cfs-group > svg {
+  width: 28px;
+  height: 28px;
+  margin-left: auto;
+  flex: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  opacity: .56;
+}
+.cfs-copy {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.cfs-name {
+  display: block;
+  font-size: 34px;
+  line-height: 44px;
+  font-weight: 500;
+  letter-spacing: -.45px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cfs-value {
+  display: block;
+  font-size: 21px;
+  line-height: 28px;
+  font-weight: 400;
+  letter-spacing: -.1px;
+  color: rgba(246, 241, 231, .54);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cfs-group.is-focus {
+  background: #f5f4f0 !important;
+  color: #111616 !important;
+  box-shadow: 0 14px 34px rgba(0, 0, 0, .26), inset 0 0 0 2px rgba(17, 22, 22, .35) !important;
+  scroll-margin: 16px;
+}
+.cfs-group.is-focus .cfs-value { color: rgba(17, 22, 22, .7) !important; }
+.cfs-group.is-focus > svg { opacity: .75 !important; }
+.cfs-group.is-focus > svg { opacity: .7; }
+
+.cfs-hint {
+  position: absolute;
+  left: 140px;
+  bottom: 66px;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: rgba(246, 241, 231, .56);
+  font-size: 22px;
+  line-height: 30px;
+}
+.cfs-key {
+  display: inline-flex;
+  align-items: center;
+  height: 32px;
+  padding: 0 11px;
+  border-radius: 9px;
+  background: rgba(255, 255, 255, .1);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .15);
+  color: rgba(246, 241, 231, .82);
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: .06em;
+}
+
+/* ---- detail ---- */
+.cfs-back {
+  position: absolute;
+  left: 118px;
+  top: 54px;
+  height: 52px;
+  padding: 0 18px 0 10px;
+  border: 0;
+  border-radius: 16px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: transparent;
+  color: rgba(246, 241, 231, .62);
+  font-size: 24px;
+  line-height: 32px;
+  font-weight: 500;
+  transition: background .14s linear, color .14s linear;
+}
+.cfs-back svg {
+  width: 24px;
+  height: 24px;
+  stroke: currentColor;
+  stroke-width: 1.9;
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.cfs-back:hover {
+  background: rgba(255, 255, 255, .08);
+  color: #f6f1e7;
+}
+.cfs-title.cfs-detail-title {
+  top: 122px;
+}
+.cfs-detail-list {
+  position: absolute;
+  left: 140px;
+  top: 232px;
+  bottom: 130px;
+  width: 980px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: none;
+}
+.cfs-detail-list::-webkit-scrollbar { display: none; }
+.cfs-section + .cfs-section { margin-top: 32px; }
+.cfs-sec-title {
+  margin: 0 0 12px 26px;
+  font-size: 26px;
+  line-height: 34px;
+  font-weight: 500;
+  letter-spacing: -.2px;
+  color: rgba(246, 241, 231, .56);
+}
+.cfs-options {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.cfs-choice {
+  position: relative;
+  width: 100%;
+  min-height: 84px;
+  padding: 10px 24px;
+  border: 0;
+  border-radius: 18px;
+  display: flex;
+  align-items: center;
+  background: transparent;
+  color: #f6f1e7;
+  text-align: left;
+  transition: background .14s linear, color .14s linear;
+}
+.cfs-choice.has-description { min-height: 110px; }
+.cfs-choice .cfs-name {
+  font-size: 34px;
+  line-height: 42px;
+}
+.cfs-choice .cfs-desc {
+  display: block;
+  margin-top: 2px;
+  font-size: 22px;
+  line-height: 30px;
+  font-weight: 400;
+  letter-spacing: -.1px;
+  color: rgba(246, 241, 231, .54);
+  white-space: normal;
+}
+.cfs-choice.is-focus {
+  background: #f5f4f0 !important;
+  color: #111616 !important;
+  box-shadow: 0 14px 34px rgba(0, 0, 0, .24), inset 0 0 0 2px rgba(17, 22, 22, .35) !important;
+  scroll-margin: 12px;
+}
+.cfs-choice.is-focus .cfs-desc { color: rgba(17, 22, 22, .65) !important; }
+.cfs-choice.is-info {
+  color: rgba(246, 241, 231, .76);
+}
+.cfs-choice.is-info .cfs-desc { color: rgba(246, 241, 231, .46); }
+.cfs-swatch {
+  flex: none;
+  width: 84px;
+  height: 52px;
+  margin-right: 18px;
+  border-radius: 8px;
+  object-fit: cover;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .14);
+}
+.cfs-tick {
+  flex: none;
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  color: currentColor;
+}
+.cfs-tick svg {
+  width: 28px;
+  height: 28px;
+  stroke: currentColor;
+  stroke-width: 2.2;
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.cfs-tick.is-forward {
+  width: 28px;
+  height: 28px;
+  opacity: .5;
+}
+.cfs-tick.is-forward svg {
+  width: 24px;
+  height: 24px;
+  stroke-width: 1.9;
+}
+/* the cycle rows in a detail list (Effect, Units, Update every) show their value instead of a tick */
+.cfs-choice > .cfs-value {
+  flex: none;
+  margin-left: auto;
+  max-width: 460px;
+  font-size: 30px;
+  line-height: 38px;
+  font-weight: 400;
+  letter-spacing: -.3px;
+  color: rgba(246, 241, 231, .58);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: right;
+}
+.cfs-choice.is-focus > .cfs-value { color: rgba(17, 22, 22, .7) !important; }
+/* an unchecked quick button: a quiet ring where the tick would be */
+.cfs-tick.is-off {
+  width: 30px;
+  height: 30px;
+  border: 2px solid currentColor;
+  border-radius: 50%;
+  opacity: .35;
+}
+
+/* ================= appearance (added) ================= */
+.cleanframe-stage { font-family: var(--cf-font, "Manrope Clean", Arial, sans-serif); }
+.cleanframe-stage.cf-bg-light { background: #f2efe7; color: #1a1d1c; }
+.cleanframe-stage.cf-bg-dark { background: #0b0d0c; color: #f7f3ea; }
+.cleanframe-stage.cf-bg-light .cleanframe-photo,
+.cleanframe-stage.cf-bg-dark .cleanframe-photo { opacity: 0; }
+.cleanframe-stage.cf-bg-light .cleanframe-scrim,
+.cleanframe-stage.cf-bg-dark .cleanframe-scrim { opacity: 0; }
+
+.cleanframe-stage.cf-apps-text .cleanframe-tile .cleanframe-mark { display: none; }
+.cleanframe-stage.cf-apps-icons .cleanframe-tile .cleanframe-name { display: none; }
+.cleanframe-stage.cf-ctrl-text .cleanframe-utility svg { display: none; }
+.cleanframe-stage.cf-ctrl-icons .cleanframe-utility { width: 3rem; height: 3rem; overflow: hidden; font-size: 0; }
+
+.cleanframe-stage .is-focus { transition: transform .12s ease, box-shadow .12s ease; }
+.cleanframe-stage.cf-focus-type .is-focus { background: rgba(255,255,255,.18); box-shadow: 0 0 0 2px rgba(255,255,255,.55); backdrop-filter: none; }
+.cleanframe-stage.cf-focus-glass .is-focus { background: rgba(255,255,255,.08); box-shadow: 0 0 0 2px rgba(255,255,255,.35); backdrop-filter: blur(12px); }
+.cleanframe-stage.cf-tint-soft .is-focus { box-shadow: 0 0 0 2px rgba(255,255,255,.25); }
+.cleanframe-stage.cf-tint-frost .is-focus { box-shadow: 0 0 0 2px rgba(255,255,255,.45); }
+.cleanframe-stage.cf-tint-clear .is-focus { box-shadow: 0 0 0 2px rgba(255,255,255,.7); background: rgba(255,255,255,.04); }
+
+/* Icons only: the app marks float on their own. No dock plate, no focus glass; the
+   selected mark simply grows. */
+.cleanframe-stage.cf-apps-icons .cleanframe-dock {
+  background: transparent;
+  box-shadow: none;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+.cleanframe-stage.cf-apps-icons .cleanframe-tile::before,
+.cleanframe-stage.cf-apps-icons .cleanframe-tile.is-lifted::before { display: none; }
+.cleanframe-stage.cf-apps-icons .cleanframe-tile .cleanframe-mark {
+  left: 50%;
+  top: 50%;
+  width: 168px;
+  height: 168px;
+  transform: translate(-50%, -50%);
+  transition: transform .16s cubic-bezier(.2, .7, .2, 1);
+}
+.cleanframe-stage.cf-apps-icons .cleanframe-tile .cleanframe-mark img.icon-mark,
+.cleanframe-stage.cf-apps-icons .cleanframe-tile .cleanframe-mark svg.icon-mark {
+  width: 148px;
+  height: 148px;
+}
+.cleanframe-stage.cf-apps-icons .cleanframe-tile .cleanframe-mark .monogram {
+  width: 148px;
+  height: 148px;
+  border-radius: 46px;
+  font-size: 52px;
+}
+.cleanframe-stage.cf-apps-icons .cleanframe-tile.is-focus .cleanframe-mark,
+.cleanframe-stage.cf-apps-icons .cleanframe-tile.is-lifted .cleanframe-mark {
+  transform: translate(-50%, -50%) scale(1.3);
+}
+.cleanframe-stage.cf-apps-icons .cleanframe-tile.is-focus,
+.cleanframe-stage.cf-apps-icons .cleanframe-tile.is-lifted {
+  background: transparent !important;
+  box-shadow: none !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+
+/* Quick buttons: a selected button turns white and grows a little. */
+.cleanframe-stage .cleanframe-utility.is-focus {
+  color: #fff !important;
+  background: rgba(255, 255, 255, .16) !important;
+  border-color: rgba(255, 255, 255, .75) !important;
+  box-shadow: 0 10px 26px rgba(0, 0, 0, .26), 0 0 0 2px rgba(255, 255, 255, .4) !important;
+  transform: scale(1.14) !important;
+  -webkit-backdrop-filter: blur(16px) saturate(130%);
+  backdrop-filter: blur(16px) saturate(130%);
+}
+.cleanframe-stage .cleanframe-utility.is-focus svg { stroke: #fff; }

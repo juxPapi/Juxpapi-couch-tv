@@ -1,5 +1,6 @@
 import groovy.json.JsonOutput
 import groovy.json.JsonSlurper
+import org.gradle.api.tasks.Optional
 
 plugins {
     id("com.android.application")
@@ -13,8 +14,8 @@ android {
         applicationId = "app.couchtv.launcher"
         minSdk = 25          // Android 7.1, so Fire OS 6 sticks (Fire TV Stick 4K, 1st gen) install it
         targetSdk = 34
-        versionCode = 19
-        versionName = "0.17"
+        versionCode = 24
+        versionName = "0.22"
         // Where the bridge might be: ./gradlew assembleRelease -PbridgeUrls=http://my-computer.local:5400
         // (comma separated, more than one is fine). The last one that answered is remembered on the TV.
         // Without it, apply.sh tells the app the address when it installs (the "bridge" extra), and
@@ -66,6 +67,10 @@ abstract class BundleTvWeb : DefaultTask() {
     @get:InputFile
     abstract val configJson: RegularFileProperty
 
+    @get:Optional
+    @get:Input
+    abstract val cleanframeWallpapersPath: Property<String>
+
     @get:OutputDirectory
     abstract val outputDir: DirectoryProperty
 
@@ -81,6 +86,29 @@ abstract class BundleTvWeb : DefaultTask() {
             if (rel == "mock.js" || rel.endsWith(".md") || f.name.startsWith(".")) return@forEach
             f.copyTo(File(dest, rel), overwrite = true)
         }
+        // Optional external wallpapers for the Fire TV CleanFrame skin. Passed in at build time as
+        // -PcleanframeWallpapers=<folder>. Images are copied into the APK and listed in wallpapers.json.
+        val wallFiles = cleanframeWallpapersPath.orNull?.takeIf { it.isNotBlank() }?.let { dir ->
+            File(dir).walkTopDown()
+                .filter { it.isFile && it.extension.lowercase() in setOf("jpg", "jpeg", "webp", "png", "avif") && it.length() <= 15L * 1024 * 1024 }
+                .take(64).toList()
+        } ?: emptyList()
+        if (wallFiles.isNotEmpty()) {
+            val wallDir = File(dest, "cleanframe/wallpapers")
+            wallDir.mkdirs()
+            wallFiles.forEach { it.copyTo(File(wallDir, it.name), overwrite = true) }
+        }
+        val manifest = if (wallFiles.isNotEmpty()) {
+            listOf("cove.jpg") + wallFiles.map { it.name }.filter { it != "cove.jpg" }
+        } else {
+            // No external folder: ship the wallpapers that are bundled in tv-home/web/cleanframe.
+            File(dest, "cleanframe/wallpapers").listFiles()
+                ?.filter { it.isFile && it.extension.lowercase() in setOf("jpg", "jpeg", "webp", "png", "avif") }
+                ?.map { it.name }?.sorted()
+                ?.takeIf { it.isNotEmpty() }
+                ?: listOf("cove.jpg")
+        }
+        File(dest, "cleanframe/wallpapers.json").writeText(JsonOutput.toJson(manifest) + "\n")
         File(dest, "config.js").writeText("window.COUCH_CONFIG = " + JsonOutput.toJson(publicConfig(configJson.get().asFile)) + ";\n")
     }
 
@@ -128,6 +156,11 @@ val bundleTvWeb = tasks.register<BundleTvWeb>("bundleTvWeb") {
     web.set(rootProject.layout.projectDirectory.dir("../web"))
     configJson.set(configFile)
     outputDir.set(layout.buildDirectory.dir("generated/tvweb"))
+}
+
+tasks.named<BundleTvWeb>("bundleTvWeb") {
+    val cleanWallpapers = (project.findProperty("cleanframeWallpapers") as String?)?.trim().orEmpty()
+    if (cleanWallpapers.isNotEmpty()) cleanframeWallpapersPath.set(cleanWallpapers)
 }
 
 androidComponents {

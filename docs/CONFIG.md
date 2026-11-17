@@ -60,13 +60,18 @@ seconds and nudges the idle timer until the TV naps by itself; the photos then c
 later and the timeout goes back to what it was the moment the screensaver covers the home. A second
 press can never leave the TV on the short timeout. | The TV home app on an Android TV or Google TV,
 and the "modify system settings" app-op that `apply.sh` grants |
+| `clock` | The clock and the weather in a side drawer you can also summon from the remote. | Nothing |
+| `bluetooth` | Opens the TV's own Bluetooth settings. | The TV home app |
+| `network` | Opens the TV's own Network settings. | The TV home app |
+| `connections` | The Connections menu: the HDMI ports and other inputs the TV lists, then Bluetooth
+and Network, the same menu the TV's own Settings button opens. | The TV home launcher |
 
 A button that cannot work right now is left out, the same way the sleep timer always disappeared
 when the computer was off. With no bridge at all (option A), only `look` shows, plus `input` on
 TVs that have an input screen the launcher can open.
 
 ```json
-"quick": ["sleep", "look", "input", "screensaver"]
+"quick": ["sleep", "look", "input", "screensaver", "clock", "bluetooth", "network"]
 ```
 
 Home settings on the TV (gear tile, Quick buttons) can choose and order them too, for that TV.
@@ -160,7 +165,7 @@ Home settings saves to the same `bridge/data/people.json` the phone uses.
 
 | Key | What it does |
 |---|---|
-| `look` ["night"] | `night`: the scenes with the big glass clock. `classic`: one photo, a grid of app banners. The `look` quick button overrides this on each TV, and `?theme=` overrides both for a preview. |
+| `look` ["night"] | `night`: the scenes with the big glass clock. `classic`: one photo, a grid of app banners. `cleanframe`: the full-screen photo with the frosted dock and quiet monochrome icons (this build's CleanFrame skin). The `look` quick button overrides this on each TV, and `?theme=` overrides both for a preview. |
 | `scenes` [all five] | Which Night scenes take turns, and in what order. Any of `night`, `golden`, `water`, `fog`, `dawn`, and the ids of your own scenes. One scene stays put. |
 | `my_scenes` [none] | Your own scenes from any photo, each with its clock designed: where it sits, its size and font, the date above or below it, light or dark text, and `cutout` for the skyline in front of the clock. Made with `tv-home/tools/make-scene.py`; [MAKE-A-SCENE.md](MAKE-A-SCENE.md) has every key. They take turns after the scenes in `scenes` unless they are listed there. Option A needs the app rebuilt with the scene's pictures inside (that guide says how). |
 | `scene_seconds` [20] | How long each scene shows. 5 or more. |

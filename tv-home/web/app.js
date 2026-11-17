@@ -27,7 +27,7 @@
   // read in readConfig() once the page starts (mock.js fills them in for previews). See docs/CONFIG.md.
   var CFG = {}, HOME = {}, TVCFG = {}, QUICK = [];
   var WXCFG = { lat: -33.8688, lon: 151.2093, place: "Sydney", timezone: "Australia/Sydney" };
-  var QUICK_ALL = ["sleep", "picture", "connections", "bluetooth", "network", "screensaver", "clock"];
+  var QUICK_ALL = ["sleep", "picture", "connections", "bluetooth", "network", "screensaver"];
   var ON_TV = false;   // served by the on-TV app (config "mode"), which can open the TV's own settings screens
   // The look: always the Night scenes on this TV (the Classic look is switched off).
   var THEME = "night", NIGHT = true, CLOCK24 = false;
@@ -166,6 +166,7 @@
     globe: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M3.5 12h17M12 3.5c2.6 2.5 3.8 5.3 3.8 8.5s-1.2 6-3.8 8.5c-2.6-2.5-3.8-5.3-3.8-8.5s1.2-6 3.8-8.5z"/></svg>',
     pin: '<svg viewBox="0 0 24 24"><path d="M12 21s-6.5-6-6.5-11a6.5 6.5 0 0 1 13 0c0 5-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.4"/></svg>',
     cloud: '<svg viewBox="0 0 24 24"><path d="M17.5 19H8a4 4 0 1 1 .9-7.9A5.5 5.5 0 0 1 19.4 12a3.5 3.5 0 0 1-1.9 7z"/></svg>',
+    skin: '<svg viewBox="0 0 24 24"><rect x="3" y="7" width="13" height="13" rx="3"/><path d="M8 3.5h9.5A3.5 3.5 0 0 1 21 7v9.5"/><path d="M6.5 12.5h6M6.5 15.2h3.5"/></svg>',
     apps: '<svg viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="7" height="7" rx="2"/><rect x="13.5" y="3.5" width="7" height="7" rx="2"/><rect x="3.5" y="13.5" width="7" height="7" rx="2"/><rect x="13.5" y="13.5" width="7" height="7" rx="2"/></svg>',
     person: '<svg viewBox="0 0 24 24"><circle cx="12" cy="8.5" r="3.8"/><path d="M4.5 20.5c.8-3.9 3.7-6 7.5-6s6.7 2.1 7.5 6"/></svg>',
     bolt: '<svg viewBox="0 0 24 24"><path d="M13 2.8 5.5 13.2h5.8L10.5 21l8-10.6h-5.9z"/></svg>',
@@ -218,10 +219,10 @@
     WX_SUN_GRADE = typeof ST.ambient_sun_grade === "boolean" ? ST.ambient_sun_grade : HOME.ambient_sun_grade === true;
     var mine = TV_ID || CFG.default_tv;
     TVCFG = (CFG.tvs || []).filter(function (t) { return t.id === mine; })[0] || (CFG.tvs || [])[0] || {};
-    // The clock button is new: put it at the front of a quick list saved before it existed, once,
-    // so the live clock drawer can always be reached with the remote. Removing it later sticks.
-    if (Array.isArray(ST.quick) && !ST.ck_quick && ST.quick.indexOf("clock") < 0) {
-      ST.quick = ["clock"].concat(ST.quick);
+    // The clock quick button has been removed entirely. Take it out of any list saved before
+    // the change, once, so it never comes back on either skin. The clock itself stays on the home.
+    if (Array.isArray(ST.quick) && ST.quick.indexOf("clock") >= 0) {
+      ST.quick = ST.quick.filter(function (q) { return q !== "clock"; });
       ST.ck_quick = true;
       saveSettings();
     }
@@ -741,12 +742,13 @@
     var h = new Date().getHours();
     return { alt: (h >= 6 && h < 18) ? 35 : -20, hourAngle: (h - 12) * 15 };
   }
+  function cfActive() { return !!(window.CleanFrame && window.CleanFrame.active && window.CleanFrame.active()); }
   // The ambient weather effects follow the settings: off unless chosen, and not while the
-  // weather itself is hidden.
+  // weather itself is hidden. CleanFrame shows them over its wallpaper too.
   function applyWeatherEffectType() {
     var a = window.AmbientWeather;
     if (!a) return;
-    if (!WX_EFFECTS || !WX_SHOW || !NIGHT) { a.setWeather(null, getSunPos()); return; }
+    if (!WX_EFFECTS || !WX_SHOW || (!NIGHT && !cfActive())) { a.setWeather(null, getSunPos()); return; }
     if (WX_EFFECT_TYPE !== "auto") {
       // force the chosen effect: synthesize a weather code
       var code = WX_EFFECT_TYPE === "rain" ? 63 : WX_EFFECT_TYPE === "snow" ? 73 : WX_EFFECT_TYPE === "fog" ? 45 : WX_EFFECT_TYPE === "storm" ? 95 : 0;
@@ -758,8 +760,8 @@
   function ambientSync() {
     var a = window.AmbientWeather;
     if (!a) return;
-    a.setEnabled(WX_EFFECTS && WX_SHOW && NIGHT);
-    a.setSunGradeEnabled(WX_SUN_GRADE && NIGHT);
+    a.setEnabled(WX_EFFECTS && WX_SHOW && (NIGHT || cfActive()));
+    a.setSunGradeEnabled(WX_SUN_GRADE && (NIGHT || cfActive()));
     applyWeatherEffectType();
   }
   function updateAmbientWeather() {
@@ -771,7 +773,7 @@
   // The bridge's reading for the place in config.json, or straight from Open-Meteo with no bridge
   // or when Home settings chose another place. Hidden when Home settings switched the weather off.
   function refreshWeather() {
-    if (!NIGHT || !WX_SHOW) { updateAmbientWeather(); return Promise.resolve(); }
+    if ((!NIGHT && !cfActive()) || !WX_SHOW) { updateAmbientWeather(); return Promise.resolve(); }
     var direct = OFFLINE || !!(ST.place && isFinite(ST.place.lat));
     return (direct ? weatherDirect() : api("GET", "/api/weather")).then(function (j) {
       data.weather = j; clock(); ambientSync();
@@ -1081,6 +1083,20 @@
       if (!done) openSettingsScreen(q);
     }
     else if (q === "connections") openConnections();
+    else if (q === "clock") openClockBar();
+  }
+  // One quick button, however it is shown: the Night quick row and the CleanFrame controls both
+  // act through this, so the two homes behave the same for the same button.
+  function quickActivate(q) {
+    if (q === "sleep") openMenu();
+    else if (q === "picture") togglePicture();
+    else if (q === "connections") openConnections();
+    else if (q === "screensaver") startScreensaver();
+    else if (q === "bluetooth" || q === "network") {
+      var done = false;
+      try { done = !!(TV && TV.openSettingsScreen && TV.openSettingsScreen(q)); } catch (e) {}
+      if (!done) openSettingsScreen(q);
+    }
     else if (q === "clock") openClockBar();
   }
   function refreshQuick() {
@@ -1870,8 +1886,8 @@
   var ST_KEY = "tvhome.settings";
   // The order asked for (item 4): Looks and Scenes, Quick buttons, Apps, Weather, Location, Language,
   // Updates (added in start() when the launcher can update itself), About.
-  var SECS = [["look", "look"], ["clock", "clock"], ["quick", "bolt"], ["apps", "apps"], ["weather", "cloud"],
-    ["location", "pin"], ["language", "globe"], ["about", "info"]];
+  var SECS = [["look", "look"], ["skin", "skin"], ["clock", "clock"], ["quick", "bolt"], ["apps", "apps"],
+    ["weather", "cloud"], ["location", "pin"], ["language", "globe"], ["about", "info"]];
   var SET = { col: "secs", sec: 0, ri: 0, keyFocus: null, sub: null, lift: null, confirm: null, dirty: false, typing: null,
     msg: "", geo: { q: "", list: null, busy: false, err: false } };
   var REPO_URL = "github.com/Seagey/couch-tv";
@@ -1918,7 +1934,16 @@
         return null;
       }
       if (canon(remote) === canon(ST)) return null;
-      ST = remote;
+      // Merge instead of replacing the TV's copy: the bridge's copy wins where it has an opinion,
+      // and anything it does not know about is kept. Otherwise the TV's own settings (such as the
+      // scene clock it just saved, or the skin chosen on this TV) would be dropped and, because the
+      // page restarts afterwards, the next start would repeat it forever.
+      var merged = Object.assign({}, ST, remote);
+      if (canon(merged) === canon(ST)) {
+        if (!OFFLINE && data.bridge !== false) pushSettings(keepSettings(true));
+        return null;
+      }
+      ST = merged;
       keepSettings(false);
       if (zone !== "settings") restart();
       return null;
@@ -1966,6 +1991,7 @@
     if (id === "location") return locationRows();
     if (id === "weather") return weatherRows();
     if (id === "look") return lookRows();
+    if (id === "skin") return skinRows();
     if (id === "clock") return clockRows();
     if (id === "apps") return appsRows();
     if (id === "quick") return quickRows();
@@ -2127,6 +2153,22 @@
     ];
   }
 
+  // CleanFrame's Weather effects group drives the same settings as the Weather tab in Home
+  // settings: the effects over the photo, the sunlight grading, the units and how often the
+  // reading is refreshed.
+  function cfWeatherSet(patch) {
+    if (!patch || typeof patch !== "object") return;
+    if (patch.show !== undefined) { WX_SHOW = !!patch.show; ST.wx_show = WX_SHOW; if (WX_SHOW) refreshWeather(); }
+    if (patch.effects !== undefined) { WX_EFFECTS = !!patch.effects; ST.weather_effects = WX_EFFECTS; }
+    if (patch.type !== undefined && ["auto", "rain", "snow", "fog", "storm", "clear"].indexOf(patch.type) >= 0) {
+      WX_EFFECT_TYPE = patch.type; ST.weather_effect = WX_EFFECT_TYPE;
+    }
+    if (patch.sun !== undefined) { WX_SUN_GRADE = !!patch.sun; ST.ambient_sun_grade = WX_SUN_GRADE; }
+    if (patch.f !== undefined) { WX_F = !!patch.f; ST.wx_unit = WX_F ? "f" : "c"; }
+    if (patch.every !== undefined && [15, 30, 60].indexOf(Number(patch.every)) >= 0) { WX_EVERY = Number(patch.every); ST.wx_every = WX_EVERY; }
+    saveSettings(); ambientSync(); clock();
+  }
+
   // ---- look, scenes and the household's own photos ----
   var SECS_STEPS = [10, 15, 20, 30, 45, 60, 120];
   // The scenes have a page of their own (Look and scenes > Photo scenes): every scene with its tick,
@@ -2144,11 +2186,36 @@
     });
     return rows;
   }
+  function reloadSkin(look) {
+    var parts = location.href.split("#"), pathAndQuery = parts[0], hash = parts[1] || "";
+    var q = pathAndQuery.split("?")[1] || "";
+    // reset=1 is a preview-only one-shot: carrying it into the new skin would wipe what we saved.
+    var keep = q.split("&").filter(function (p) { return p && p.indexOf("theme=") !== 0 && p.indexOf("reset=") !== 0; });
+    keep.push("theme=" + look);
+    location.replace(pathAndQuery.split("?")[0] + "?" + keep.join("&") + (hash ? "#" + hash : ""));
+  }
   function openScenes() {
     var rows = sceneRows();
     SET.sub = { back: "scenes-open", crumb: t("sec_look"), title: function () { return t("scenes_open"); },
       rows: sceneRows };
     SET.keyFocus = rows.length ? rows[0].key : "scenes-open";
+  }
+  // A tab of its own: the skin changes the whole home, so it is not buried in Look and scenes.
+  function skinRows() {
+    var skin = String(ST.look || HOME.look || "night").toLowerCase() === "cleanframe" ? "cleanframe" : "night";
+    function choose(look) {
+      if (skin === look) return;
+      ST.look = look;
+      saveSettings();
+      reloadSkin(look);
+    }
+    return [
+      info("skin-note", t("skin_note")),
+      { kind: "choice", key: "skin:cleanframe", label: t("skin_frame"), sub: t("skin_frame_sub"),
+        checked: skin === "cleanframe", act: function () { choose("cleanframe"); } },
+      { kind: "choice", key: "skin:night", label: t("skin_night"), sub: t("skin_night_sub"),
+        checked: skin === "night", act: function () { choose("night"); } }
+    ];
   }
   function lookRows() {
     var st = sceneState(), rows = [];
@@ -3362,6 +3429,76 @@
 
   function start() {
     readConfig();
+    if (window.CleanFrame && window.CleanFrame.active()) {
+      window.tv = {
+        back: function () { if (window.CleanFrame.backIntent) window.CleanFrame.backIntent(); },
+        home: function () { if (window.CleanFrame.homeIntent) window.CleanFrame.homeIntent(); },
+        settingsKey: function () {},
+        resume: function () {},
+        pause: function () { if (window.CleanFrame.pause) window.CleanFrame.pause(); },
+        noDream: function () {},
+        photosAdded: function () {},
+        update: function () {}
+      };
+      // Home settings is used from the skin too, so its text box needs its listener even
+      // though the Night home never starts.
+      initSettings();
+      // CleanFrame shows the ambient weather over its own wallpaper when it is switched on.
+      if (window.AmbientWeather) {
+        window.AmbientWeather.init($("weather-canvas"), $("ambient-lighting"));
+        ambientSync();
+      }
+      refreshWeather();
+      setInterval(refreshWeather, WX_EVERY * 60000);
+      window.CleanFrame.start({
+        // Shared with Night's Skin tab: the choice lives in the same settings record, so it
+        // survives a switch either way. reloadSkin keeps every other query setting intact.
+        // This hook only exists while the CleanFrame skin is running, so the current skin is
+        // always CleanFrame (the URL's ?theme= is what selected it).
+        getSkin: function () { return "cleanframe"; },
+        setSkin: function (look) {
+          if (String(ST.look || HOME.look || "night").toLowerCase() === look) return;
+          ST.look = look;
+          saveSettings();
+          reloadSkin(look);
+        },
+        openHomeSettings: function () { openSettings(); },
+        closeHomeSettings: function () {
+          if (zone === "settings" || $("settings").classList.contains("on")) closeSettings();
+        },
+        homeSettingsOpen: function () { return zone === "settings" || $("settings").classList.contains("on"); },
+        openTvSettings: openTvSettings,
+        // A Night overlay (clock drawer, sleep menu, Connections list) opened from a CleanFrame
+        // quick button owns the keys; a hardware Back belongs to it, not to the dock beneath.
+        nightBack: function () { goHome(); },
+        // The CleanFrame quick row and its Weather effects group read and write the same
+        // settings as the Night home's Quick buttons and Weather tabs.
+        quickAll: function () { return QUICK_ALL.slice(); },
+        quickOn: function () { return QUICK.slice(); },
+        quickNeeds: function (q) { return quickNeeds(q); },
+        quickToggle: function (q) { toggleQuick(q); },
+        quickMove: function (q, d) { moveQuick(q, d); },
+        quickActivate: function (q) { quickActivate(q); },
+        weatherState: function () {
+          return { show: WX_SHOW, effects: WX_EFFECTS, type: WX_EFFECT_TYPE, sun: WX_SUN_GRADE, f: WX_F, every: WX_EVERY };
+        },
+        weatherSet: function (patch) { cfWeatherSet(patch); },
+        // The CleanFrame dock keeps the same order as Night and the bridge, so a move on either
+        // home shows on the other one and on the phone's Arrange apps screen.
+        saveAppOrder: function (packages, line) {
+          if (!Array.isArray(packages) || !packages.length) return;
+          line = Math.max(1, Math.min(packages.length, Number(line) || packages.length));
+          var local = { line: line, packages: packages.slice(), pending: true };
+          data.order = { saved: true, line: line, packages: packages.slice() };
+          keep("tvhome.order.tv", local);
+          save();
+          if (OFFLINE || data.bridge === false) return;
+          api("POST", "/api/app-order", { order: packages.slice(), line: line })
+            .then(function () { local.pending = false; keep("tvhome.order.tv", local); }, function () {});
+        }
+      });
+      return;
+    }
     staticText();
     initSettings();
     // Home settings gets an Updates section, before About, where the launcher can update itself

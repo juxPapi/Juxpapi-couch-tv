@@ -12,6 +12,9 @@
 # CONFIG is the settings file built into the home's own copy (default: config.example.json, so a
 # build is the same on every computer). apply.sh hands the TV your config.json at install time
 # anyway, so the default is fine for everyone.
+# CLEANFRAME_WALLPAPERS points to a folder of 1920x1080 JPGs/WebPs/PNGs for the optional CleanFrame
+# skin. They are copied into the APK at build time and picked at random by it.
+#   CLEANFRAME_WALLPAPERS="/path/to/tv-wallpapers" sh scripts/build-apk.sh
 # UPDATE_REPO is whose GitHub releases Home settings, Updates offers (default Seagey/couch-tv):
 # a fork with releases of its own sets it, and UPDATE_REPO= (empty) switches updates off.
 set -e
@@ -38,11 +41,23 @@ mkdir -p "$ROOT/dist"
 EXTRA=""
 [ -n "${BRIDGE_URLS:-}" ] && EXTRA="-PbridgeUrls=$BRIDGE_URLS"
 [ -n "${UPDATE_REPO+set}" ] && EXTRA="$EXTRA -PupdateRepo=$UPDATE_REPO"
+if [ -n "${CLEANFRAME_WALLPAPERS:-}" ]; then
+  if [ ! -d "$CLEANFRAME_WALLPAPERS" ]; then
+    echo "CLEANFRAME_WALLPAPERS is not a folder: $CLEANFRAME_WALLPAPERS"
+    exit 1
+  fi
+  WALLPAPERS_ABS=$(CDPATH= cd "$CLEANFRAME_WALLPAPERS" && pwd)
+  echo "CleanFrame wallpapers: $WALLPAPERS_ABS"
+fi
 
 echo "Building the TV home (settings built in: $CONFIG)"
 # Through sh: a Windows checkout does not keep the executable bit, and a fresh clone on the
 # runner would then fail with "Permission denied" (exit 126).
-sh "$GW" -p "$ROOT/tv-home/android" --no-daemon -q clean assembleRelease "-PconfigJson=$CONFIG" $EXTRA
+if [ -n "${WALLPAPERS_ABS:-}" ]; then
+  sh "$GW" -p "$ROOT/tv-home/android" --no-daemon -q clean assembleRelease "-PconfigJson=$CONFIG" $EXTRA "-PcleanframeWallpapers=$WALLPAPERS_ABS"
+else
+  sh "$GW" -p "$ROOT/tv-home/android" --no-daemon -q clean assembleRelease "-PconfigJson=$CONFIG" $EXTRA
+fi
 cp "$ROOT/tv-home/android/app/build/outputs/apk/release/app-release.apk" "$ROOT/dist/couch-tv-home.apk"
 OUT="$ROOT/dist/couch-tv-home.apk"
 

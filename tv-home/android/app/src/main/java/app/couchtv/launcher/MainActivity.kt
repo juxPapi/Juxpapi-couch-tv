@@ -163,6 +163,9 @@ class MainActivity : Activity() {
         restoreTimeout(dream = true)   // the screensaver covered the home: timeout goes back
         savePoster()   // keep this frame for the next cold start
         js("window.tv && tv.pause && tv.pause()")   // the video background stops while an app is in front
+        // Art Mode's "never sleep" flag is only for this screen: Home, an app or the screensaver
+        // must not inherit it. The page also ends Art Mode in tv.pause().
+        window.clearFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
     }
 
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
@@ -365,7 +368,14 @@ class MainActivity : Activity() {
                 if (req.isForMainFrame && res.statusCode >= 500) pageFailed()
             }
 
-            override fun shouldOverrideUrlLoading(view: WebView, req: WebResourceRequest) = true
+            // The home reloads itself on the same page when the skin changes (Save, then
+            // location.replace with a query string); that reload must be allowed. Everything else
+            // is not this app's to follow, so a link cannot take over the home.
+            override fun shouldOverrideUrlLoading(view: WebView, req: WebResourceRequest): Boolean {
+                val cur = view.url ?: return true
+                val samePath = req.url.toString().substringBefore('?') == cur.substringBefore('?')
+                return !samePath
+            }
 
             override fun shouldInterceptRequest(view: WebView, req: WebResourceRequest): WebResourceResponse? {
                 val u = req.url
@@ -716,6 +726,17 @@ class MainActivity : Activity() {
          */
         @JavascriptInterface
         fun openTvSettings(): Boolean = startAny(listOf(amazonSettingsHome(), Intent(Settings.ACTION_SETTINGS)))
+
+        /** Keep the screen awake while CleanFrame's Art Mode is showing. The window flag is
+         *  cleared when the page says Art Mode ended (Back or Home). */
+        @JavascriptInterface
+        fun setKeepScreenOn(on: Boolean): Boolean {
+            main.post {
+                if (on) window.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+                else window.clearFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+            }
+            return true
+        }
 
         private fun amazonSettingsHome() = Intent().setComponent(ComponentName(
             "com.amazon.tv.launcher",

@@ -10,6 +10,45 @@ built and waiting for its first real LG. No ads on the home screen. Open source 
 
 ## Updates
 
+**17 November 2026: bigger CleanFrame icons, tidier Quick settings and a working Skin tab (0.22).**
+
+- **Bigger app icons with a soft shadow.** The dock icons are larger and sit over a blurred shadow,
+  so they read clearly over any wallpaper. The all-apps grid keeps its smaller icons.
+- **Icons-only layout.** With names off, the icons centre themselves, the dock plate and focus glass
+  disappear, and the selected icon grows.
+- **Quick buttons.** The chosen button turns white and grows a little. The Clock button is gone from
+  the row and from Quick settings; the clock itself stays on the home.
+- **Home lands in the middle.** Pressing Home returns focus to the middle app tile, not the first.
+- **Skin tab.** CleanFrame Home settings has its own Skin tab for switching to Night scenes and back.
+- **Fire TV Home.** Fire OS handles the Home key in firmware before any app sees it, so Amazon's
+  home still appears for a moment on a Home press from inside an app. couch-tv comes straight back.
+
+**17 November 2026: CleanFrame controls, skin switching fixes and release docs (0.21).**
+
+- **CleanFrame settings sheet.** The house button opens the skin's own settings: Skin, Background,
+  Apps on Home, Home settings, TV settings and About. Background offers bundled wallpapers and
+  shuffle at each start.
+- **Home settings Skin tab.** Skin is now its own tab, not buried in Look and scenes, and switches
+  between CleanFrame and Night scenes with one OK.
+- **Art Mode is beside the time.** The photo button sits in the top-left with the label
+  **Art Mode**, rotates the bundled photos, and keeps the screen awake until Home or Back.
+- **Reorder by holding OK.** Hold OK on an app in the dock to lift it, move it with Left/Right,
+  drop it with OK. Back cancels. The order is shared with the Night dock and the phone's Arrange
+  apps screen.
+- **Skin switching no longer reloads forever.** Settings sync between the TV and the bridge now
+  merges instead of discarding the TV's own values, so a skin choice survives a plain start.
+
+**17 November 2026: Fire TV skin controls, clear app icons and Art Mode (0.20).**
+
+- **The Skin switch works.** Home settings, Look and scenes, Skin switches between Night and
+  CleanFrame and takes effect straight away.
+- **Clear app icons.** On the Fire TV skin, each installed app's own icon is drawn as a
+  simplified white mark; an app with no icon keeps a monogram.
+- **All apps moved below the dock.** The top-right All apps tab is gone. A floating **All apps**
+  arrow under the dock opens the grid, and **Down** from the dock does the same.
+- **Art Mode.** The picture control in the top-right fills the screen with the bundled photos,
+  changes them every 30 seconds, and keeps the screen awake until you press **Home** or **Back**.
+
 **16 November 2026: a simpler dock, manual weather effects and a steadier Home button
 (0.17).**
 
@@ -189,6 +228,12 @@ place to make a new one. Your apps and "keep watching" stay put. Start on one wi
 `?scene=<name>`, or swap in your own photos. **Design your own scene** (any photo, or a place you
 describe, with your own clock and date over it, and the skyline in front of the clock if you like):
 [docs/MAKE-A-SCENE.md](docs/MAKE-A-SCENE.md).
+
+For Fire TV, an optional CleanFrame-inspired look is also available: a photo, the time, your
+Bluetooth and Network buttons, **Art Mode** and TV settings, a frosted dock, and a floating
+**All apps** arrow. Press the house button for the skin's own settings sheet. It is separate
+from the Night look and uses extra wallpapers supplied at build time:
+[docs/CLEANFRAME.md](docs/CLEANFRAME.md).
 
 | Night (Golden hour) | Classic (`?theme=classic`) |
 |---|---|

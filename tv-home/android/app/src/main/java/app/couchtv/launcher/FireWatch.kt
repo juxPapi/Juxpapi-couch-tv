@@ -16,9 +16,10 @@ import android.view.accessibility.AccessibilityEvent
 /**
  * The Home button watch. The TV's own home stays installed and switched on (switching it off can
  * leave a Google TV in a boot loop, see README "If your TV loops after a restart"), so on many TVs
- * the Home key, and the TV at power on, still open that home. This watcher sees the TV's own home
- * come on screen and puts couch-tv back on top. The TV's home flashes up for a moment; without
- * root that is as good as Android allows.
+ * the Home key, and the TV at power on, still open that home. Fire OS handles the Home key in
+ * firmware, before any app (or accessibility service) can see it, so the only way back is to watch
+ * for the TV's home coming on screen and put couch-tv straight back on top. It shows for a moment;
+ * without root that is as close as Android allows.
  *
  * - Fire TV: Amazon's TVs start Amazon's launcher from the Home key by name.
  * - Google TV and Android TV: the Google home outranks the default-home setting.

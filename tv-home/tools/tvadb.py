@@ -197,8 +197,11 @@ def main():
             tv.shell("rm -f /sdcard/tv-shot.png")
             print(args[0])
         elif cmd == "keys":
+            # The remote's names, not Android's: UP is DPAD_UP, OK is DPAD_CENTER.
+            KEYMAP = {"UP": "DPAD_UP", "DOWN": "DPAD_DOWN", "LEFT": "DPAD_LEFT", "RIGHT": "DPAD_RIGHT",
+                      "ENTER": "DPAD_CENTER", "OK": "DPAD_CENTER", "SELECT": "DPAD_CENTER"}
             for k in args:
-                tv.shell(f"input keyevent KEYCODE_{k}")
+                tv.shell(f"input keyevent KEYCODE_{KEYMAP.get(k, k)}")
                 time.sleep(0.4)
         else:
             fail(f"unknown command {cmd}")

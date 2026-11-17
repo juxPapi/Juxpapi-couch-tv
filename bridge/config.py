@@ -239,7 +239,9 @@ def _home(h):
     out = {
         # Android package names never shown on the home or in More apps (a maker's own clutter).
         "hide_packages": [p for p in dict.fromkeys(hide) if isinstance(p, str) and re.fullmatch(r"[A-Za-z0-9_.]{1,200}", p)],
-        "look": h.get("look") if h.get("look") in ("night", "classic") else "night",
+        # CleanFrame is this fork's third look (tv-home/web/cleanframe.js), chosen on a fresh
+        # install by home.look; the TV's saved choice and the ?theme= preview win over it.
+        "look": h.get("look") if h.get("look") in ("night", "classic", "cleanframe") else "night",
         "scenes": scenes or list(SCENE_IDS),
         "scene_seconds": _int(h.get("scene_seconds"), 20, 5, 3600),
         "dock_size": _int(h.get("dock_size"), DOCK_LIMIT, 1, DOCK_LIMIT),
@@ -285,7 +287,10 @@ def _home(h):
 HOME = _home(CONFIG.get("home"))
 
 # ---------- quick settings (per TV) and picture modes ----------
-QUICK_IDS = ["sleep", "picture", "look", "input", "screensaver"]
+# The buttons the homes know how to show. The older three are kept for builds that did not
+# learn the seven (sleep and picture are bridge-only, look flips themes, input opens the input
+# list); the rest are drawn natively by the home itself. Unknown ids are filtered out on the TV.
+QUICK_IDS = ["sleep", "picture", "look", "input", "screensaver", "clock", "bluetooth", "network", "connections"]
 
 
 def quick_for(tv_cfg):
